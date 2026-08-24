@@ -1,24 +1,30 @@
 <!DOCTYPE html>
-<html lang="id" class="h-full bg-slate-950">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portal Menu Berbasis Role - GAS-Bloger V2 II</title>
-    
-    <!-- Tailwind CSS CDN -->
+    <title>Portal Dashboard Terpadu</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
     <script>
         tailwind.config = {
-            darkMode: 'class',
             theme: {
                 extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
                     colors: {
                         brand: {
-                            50: '#f0f9ff',
-                            100: '#e0f2fe',
-                            500: '#0ea5e9',
-                            600: '#0284c7',
-                            700: '#0369a1',
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            500: '#0284c7',
+                            600: '#0369a1',
+                            700: '#075985',
                             900: '#0c4a6e',
                         }
                     }
@@ -26,1089 +32,793 @@
             }
         }
     </script>
-    
-    <!-- FontAwesome & Google Fonts -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    
     <style>
-        /* Blogger Layout Override Fixes & Fullscreen Standalone App Mode */
-        html, body {
-            margin: 0 !important;
-            padding: 0 !important;
-            width: 100% !important;
-            height: 100% !important;
-            overflow: hidden !important;
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
         }
-        .post-body, .entry-content, article, .main-inner, .content-outer, .widget, .column-main-inner {
-            overflow: visible !important;
-            max-width: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            border: none !important;
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
         }
-        /* Full Viewport App Overlay - Menembus Layout Utama Blogger */
-        #app-viewport-root {
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
-            z-index: 999999 !important;
-            background-color: #020617 !important;
-            overflow-y: auto !important;
-            overflow-x: hidden !important;
-            display: flex !important;
-            flex-direction: column !important;
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
         }
-        body { font-family: 'Inter', sans-serif; }
-        code, pre { font-family: 'JetBrains Mono', monospace; }
-        
-        .glass-card {
-            background: rgba(30, 41, 59, 0.7);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
         }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(51, 65, 85, 0.8); border-radius: 4px; }
     </style>
 </head>
-<body class="h-full bg-slate-950 text-slate-100 overflow-x-hidden custom-scrollbar relative">
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
 
-    <!-- App Viewport Root (Menerobos Layout Blogger ke Fullscreen 100vw/100vh) -->
-    <div id="app-viewport-root" class="custom-scrollbar">
-
-        <!-- Top Header Navigation -->
-        <header class="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 lg:px-8 py-3">
-            <div class="max-w-7xl mx-auto flex items-center justify-between">
-                <!-- Logo & Title -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <!-- Logo & Brand Info -->
                 <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/20">
-                        <i class="fa-solid fa-cubes text-white text-xl"></i>
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-brand-500/20">
+                        <i class="fa-solid fa-shapes text-lg"></i>
                     </div>
                     <div>
-                        <div class="flex items-center space-x-2">
-                            <h1 class="text-base font-bold text-white tracking-wide">GAS-Bloger V2 II</h1>
-                            <span class="px-2 py-0.5 text-[10px] font-semibold bg-sky-500/20 text-sky-400 border border-sky-500/30 rounded-full">RBAC Portal</span>
-                        </div>
-                        <p class="text-xs text-slate-400 hidden sm:block">Headless Web Application Engine</p>
+                        <h1 class="font-bold text-slate-900 text-lg leading-tight" id="headerAppTitle">Portal Terpadu Apps</h1>
+                        <p class="text-xs text-slate-500 hidden sm:block" id="headerAppSubtitle">Akses Cepat Layanan & Informasi Perusahaan</p>
                     </div>
                 </div>
 
-                <!-- Navigation Controls & Role Info -->
-                <div class="flex items-center space-x-2 sm:space-x-3">
-                    <!-- API Mode Indicator Badge -->
-                    <div id="api-status-badge" class="hidden md:flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                        <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-                        <span id="api-status-text">Simulasi Mode</span>
+                <!-- Admin Controls / Status / Sync Indicator -->
+                <div class="flex items-center space-x-3">
+                    <div id="syncIndicator" class="hidden flex items-center gap-1.5 text-xs text-amber-600 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full animate-pulse">
+                        <i class="fa-solid fa-arrows-rotate fa-spin"></i>
+                        <span class="hidden sm:inline">Menyimpan ke Sheets...</span>
                     </div>
-
-                    <!-- Current Role Badge -->
-                    <div class="flex items-center space-x-2 bg-slate-800/80 border border-slate-700/60 rounded-lg px-3 py-1.5">
-                        <i class="fa-solid fa-user-shield text-xs text-sky-400"></i>
-                        <span id="current-user-display" class="text-xs font-medium text-slate-200">GUEST</span>
+                    <div id="adminBadgeContainer" class="flex items-center space-x-2">
+                        <!-- Dynamic rendering by JS -->
                     </div>
-
-                    <!-- API Settings Trigger Button -->
-                    <button id="btn-api-settings" onclick="openApiModal()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-medium border border-slate-700 transition flex items-center space-x-1.5">
-                        <i class="fa-solid fa-gear text-sky-400"></i>
-                        <span class="hidden sm:inline">API Settings</span>
-                    </button>
-
-                    <!-- Auth Action Button (Login / Logout) -->
-                    <button id="btn-auth-action" onclick="toggleAuthModal()" class="px-3.5 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-semibold shadow-md shadow-sky-600/20 transition flex items-center space-x-1.5">
-                        <i id="auth-action-icon" class="fa-solid fa-right-to-bracket"></i>
-                        <span id="auth-action-label">Login</span>
-                    </button>
                 </div>
             </div>
-        </header>
+        </div>
+    </header>
 
-        <!-- Main Content Area -->
-        <main class="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-6 space-y-6">
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
-            <!-- Public Hero / Welcome Banner -->
-            <div id="hero-banner" class="glass-card rounded-2xl p-6 sm:p-8 relative overflow-hidden">
-                <div class="absolute -right-10 -bottom-10 w-60 h-60 bg-sky-500/10 rounded-full blur-3xl pointer-events-none"></div>
-                <div class="relative z-10 max-w-2xl space-y-3">
-                    <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-400 text-xs font-medium">
-                        <i class="fa-solid fa-shield-halved"></i>
-                        <span>Role-Based Security Portal</span>
-                    </div>
-                    <h2 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">Selamat Datang di Portal Aplikasi Internal</h2>
-                    <p class="text-sm text-slate-300 leading-relaxed">
-                        Akses modul operasional, analitik, dan manajemen secara terpusat. Masukkan username dan password Anda untuk membuka modul aplikasi sesuai tingkat otorisasi peran.
-                    </p>
+        <!-- Hero Banner & Live Search Bar -->
+        <div class="bg-gradient-to-r from-brand-700 via-brand-600 to-indigo-700 rounded-2xl p-6 sm:p-8 text-white shadow-xl shadow-brand-900/10 relative overflow-hidden">
+            <div class="absolute -right-10 -bottom-10 w-60 h-60 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
+            <div class="relative z-10 max-w-2xl">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white/10 backdrop-blur-md text-brand-100 border border-white/10 mb-3">
+                    <i class="fa-solid fa-sparkles text-amber-300"></i> Portal Aplikasi & Layanan
+                </span>
+                <h2 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight" id="heroTitle">Navigasi Link & Layanan Digital</h2>
+                <p class="text-brand-100 text-sm sm:text-base mt-2" id="heroSubtitle">Pilih menu aplikasi di bawah ini atau gunakan kotak pencarian untuk akses cepat.</p>
+                
+                <!-- Live Search Box -->
+                <div class="mt-6 relative max-w-md">
+                    <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    <input type="text" id="searchInput" oninput="filterMenu()" placeholder="Cari menu, judul, atau deskripsi..." class="w-full pl-11 pr-4 py-3 bg-white text-slate-800 placeholder-slate-400 rounded-xl shadow-lg focus:outline-none focus:ring-2 focus:ring-amber-400 text-sm">
                 </div>
             </div>
+        </div>
 
-            <!-- Admin Nav Tabs (Hanya Tampil Jika Admin / Super Admin) -->
-            <div id="admin-tabs-container" class="hidden flex items-center space-x-2 border-b border-slate-800 pb-3 overflow-x-auto custom-scrollbar">
-                <button onclick="switchTab('portal')" id="tab-portal" class="px-4 py-2 rounded-lg text-xs font-semibold transition bg-sky-600 text-white shadow-md shadow-sky-600/20 flex items-center space-x-2 whitespace-nowrap">
-                    <i class="fa-solid fa-grid-2 text-sm"></i>
-                    <span>Portal Menu</span>
-                </button>
-                <button onclick="switchTab('users')" id="tab-users" class="px-4 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition flex items-center space-x-2 whitespace-nowrap">
-                    <i class="fa-solid fa-users text-sm"></i>
-                    <span>Manajemen User</span>
-                </button>
-                <button onclick="switchTab('logs')" id="tab-logs" class="px-4 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition flex items-center space-x-2 whitespace-nowrap">
-                    <i class="fa-solid fa-clock-rotate-left text-sm"></i>
-                    <span>Log Aktivitas</span>
-                </button>
+        <!-- Filter Bar & Admin Controls -->
+        <div class="flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+            <!-- Dynamic Category Pills -->
+            <div class="flex items-center space-x-1 overflow-x-auto custom-scrollbar py-1 max-w-full" id="categoryPills">
+                <!-- Rendered dynamically -->
             </div>
 
-            <!-- SECTION 1: PORTAL MENU GRID -->
-            <section id="section-portal" class="space-y-6">
-                <!-- Controls Header: Category Filter & Add Menu Button -->
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <!-- Category Filters -->
-                    <div id="category-filters" class="flex items-center space-x-2 overflow-x-auto pb-2 sm:pb-0 custom-scrollbar">
-                        <!-- Dynamic Categories Rendered via JS -->
-                    </div>
+            <!-- Admin Action Buttons (Visible only when logged in as Admin) -->
+            <div id="adminActionButtons" class="hidden flex items-center gap-2">
+                <button onclick="openCategoryManagerModal()" class="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all">
+                    <i class="fa-solid fa-layer-group"></i> Kelola Kategori
+                </button>
+                <button onclick="openAddMenuModal()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold flex items-center gap-2 shadow-sm transition-all hover:shadow">
+                    <i class="fa-solid fa-plus"></i> Tambah Menu Baru
+                </button>
+            </div>
+        </div>
 
-                    <!-- Add Menu Button (Admin Only) -->
-                    <div id="admin-menu-actions" class="hidden">
-                        <button onclick="openMenuModal()" class="w-full sm:w-auto px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-emerald-600/20 transition flex items-center justify-center space-x-2">
-                            <i class="fa-solid fa-plus"></i>
-                            <span>Tambah Menu Baru</span>
-                        </button>
-                    </div>
-                </div>
+        <!-- Cards Grid -->
+        <div id="menuGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <!-- Cards rendered dynamically -->
+        </div>
 
-                <!-- Menu Cards Grid Container -->
-                <div id="menu-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                    <!-- Dynamic Cards Rendered via JS -->
-                </div>
-            </section>
+        <!-- Empty Search Result State -->
+        <div id="emptyState" class="hidden text-center py-12 bg-white rounded-2xl border border-dashed border-slate-300">
+            <i class="fa-solid fa-folder-open text-4xl text-slate-300 mb-3"></i>
+            <h3 class="text-base font-semibold text-slate-700">Tidak ada menu ditemukan</h3>
+            <p class="text-xs text-slate-500 mt-1">Coba gunakan kata kunci lain atau ubah filter kategori.</p>
+        </div>
 
-            <!-- SECTION 2: USERS MANAGEMENT (Admin Only) -->
-            <section id="section-users" class="hidden space-y-4">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h3 class="text-lg font-bold text-white">Daftar Pengguna Sistem</h3>
-                        <p class="text-xs text-slate-400">Pengaturan akun dan hak akses peran pengguna</p>
-                    </div>
-                </div>
-                <div class="glass-card rounded-2xl overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left text-xs">
-                            <thead class="bg-slate-900/80 text-slate-400 font-semibold border-b border-slate-800">
-                                <tr>
-                                    <th class="p-4">User ID</th>
-                                    <th class="p-4">Nama Lengkap</th>
-                                    <th class="p-4">Username & Email</th>
-                                    <th class="p-4">Role</th>
-                                    <th class="p-4">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody id="users-table-body" class="divide-y divide-slate-800/60 text-slate-300">
-                                <!-- Dynamic Users Row Rendered via JS -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
+    </main>
 
-            <!-- SECTION 3: ACTIVITY LOGS (Admin Only) -->
-            <section id="section-logs" class="hidden space-y-4">
+    <!-- Admin Login Modal -->
+    <div id="loginModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-100">
+            <div class="text-center mb-5">
+                <div class="w-12 h-12 bg-brand-50 rounded-full flex items-center justify-center mx-auto text-brand-600 text-xl mb-2">
+                    <i class="fa-solid fa-lock"></i>
+                </div>
+                <h3 class="text-lg font-bold text-slate-900">Masuk Mode Admin</h3>
+                <p class="text-xs text-slate-500 mt-1">Masukkan PIN Admin untuk menambah atau mengubah data menu.</p>
+            </div>
+
+            <form onsubmit="handleAdminLogin(event)" class="space-y-4">
                 <div>
-                    <h3 class="text-lg font-bold text-white">Audit Log Aktivitas</h3>
-                    <p class="text-xs text-slate-400">Perekaman riwayat tindakan pengguna secara otomatis</p>
-                </div>
-                <div class="glass-card rounded-2xl overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left text-xs">
-                            <thead class="bg-slate-900/80 text-slate-400 font-semibold border-b border-slate-800">
-                                <tr>
-                                    <th class="p-4">Waktu</th>
-                                    <th class="p-4">Pengguna</th>
-                                    <th class="p-4">Role</th>
-                                    <th class="p-4">Aksi</th>
-                                    <th class="p-4">Detail</th>
-                                </tr>
-                            </thead>
-                            <tbody id="logs-table-body" class="divide-y divide-slate-800/60 text-slate-300">
-                                <!-- Dynamic Logs Row Rendered via JS -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
-
-        </main>
-
-        <!-- MODAL 1: LOGIN WITH USERNAME & PASSWORD -->
-        <div id="modal-auth" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
-            <div class="glass-card w-full max-w-md rounded-2xl p-6 space-y-5 relative shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
-                <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white transition">
-                    <i class="fa-solid fa-xmark text-lg"></i>
-                </button>
-
-                <div class="text-center space-y-1">
-                    <div class="w-12 h-12 rounded-xl bg-sky-600/20 border border-sky-500/30 text-sky-400 mx-auto flex items-center justify-center text-xl mb-2">
-                        <i class="fa-solid fa-lock"></i>
-                    </div>
-                    <h3 class="text-xl font-bold text-white">Login Pengguna</h3>
-                    <p class="text-xs text-slate-400">Masukkan kredensial akun Anda untuk mengakses portal:</p>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">PIN Admin</label>
+                    <input type="password" id="adminPinInput" required placeholder="Default PIN: 123456" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-center text-lg tracking-widest focus:ring-2 focus:ring-brand-500 focus:outline-none">
                 </div>
 
-                <!-- Error Alert Box -->
-                <div id="login-error-alert" class="hidden p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center space-x-2">
-                    <i class="fa-solid fa-circle-exclamation text-sm"></i>
-                    <span id="login-error-msg">Username atau password salah!</span>
-                </div>
-
-                <!-- Login Form -->
-                <form id="form-login" onsubmit="handleLoginSubmit(event)" class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-medium text-slate-300 mb-1">Username</label>
-                        <div class="relative">
-                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500">
-                                <i class="fa-solid fa-user text-xs"></i>
-                            </span>
-                            <input type="text" id="login-username" required placeholder="Contoh: ahmad_super" class="w-full bg-slate-900 border border-slate-800 rounded-xl py-2.5 pl-9 pr-3 text-xs text-white focus:border-sky-500 outline-none">
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-medium text-slate-300 mb-1">Password</label>
-                        <div class="relative">
-                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500">
-                                <i class="fa-solid fa-key text-xs"></i>
-                            </span>
-                            <input type="password" id="login-password" required placeholder="••••••••" class="w-full bg-slate-900 border border-slate-800 rounded-xl py-2.5 pl-9 pr-10 text-xs text-white focus:border-sky-500 outline-none">
-                            <button type="button" onclick="togglePasswordVisibility()" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-slate-300">
-                                <i id="password-toggle-icon" class="fa-solid fa-eye text-xs"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <button type="submit" id="btn-login-submit" class="w-full py-2.5 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-sky-600/20 transition flex items-center justify-center space-x-2">
-                        <i class="fa-solid fa-right-to-bracket"></i>
-                        <span>Masuk Sekarang</span>
+                <div class="flex gap-2">
+                    <button type="button" onclick="closeModal('loginModal')" class="w-1/2 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-all">
+                        Batal
                     </button>
-                </form>
-
-                <!-- Quick Preset Demo Credentials (Helper) -->
-                <div class="border-t border-slate-800 pt-3 space-y-2">
-                    <p class="text-[11px] font-semibold text-slate-400 text-center">Uji Cepat Kredensial Demo:</p>
-                    <div class="grid grid-cols-2 gap-1.5 text-[10px]">
-                        <button type="button" onclick="fillDemoCredentials('ahmad_super', 'super123')" class="p-2 bg-slate-900 hover:bg-sky-950/50 border border-slate-800 rounded-lg text-left transition">
-                            <span class="font-bold text-purple-400 block">Super Admin</span>
-                            <span class="text-slate-400">ahmad_super / super123</span>
-                        </button>
-                        <button type="button" onclick="fillDemoCredentials('budi_admin', 'admin123')" class="p-2 bg-slate-900 hover:bg-sky-950/50 border border-slate-800 rounded-lg text-left transition">
-                            <span class="font-bold text-sky-400 block">Admin</span>
-                            <span class="text-slate-400">budi_admin / admin123</span>
-                        </button>
-                        <button type="button" onclick="fillDemoCredentials('citra_mgr', 'mgr123')" class="p-2 bg-slate-900 hover:bg-sky-950/50 border border-slate-800 rounded-lg text-left transition">
-                            <span class="font-bold text-indigo-400 block">Manager</span>
-                            <span class="text-slate-400">citra_mgr / mgr123</span>
-                        </button>
-                        <button type="button" onclick="fillDemoCredentials('dewi_staff', 'staff123')" class="p-2 bg-slate-900 hover:bg-sky-950/50 border border-slate-800 rounded-lg text-left transition">
-                            <span class="font-bold text-emerald-400 block">Staff</span>
-                            <span class="text-slate-400">dewi_staff / staff123</span>
-                        </button>
-                    </div>
+                    <button type="submit" class="w-1/2 py-2.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold rounded-xl shadow-md transition-all">
+                        Verifikasi PIN
+                    </button>
                 </div>
-
-            </div>
+            </form>
         </div>
+    </div>
 
-        <!-- MODAL 2: ADD / EDIT MENU MODAL (Admin Only) -->
-        <div id="modal-menu-form" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
-            <div class="glass-card w-full max-w-lg rounded-2xl p-6 space-y-4 relative shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
-                <button onclick="closeMenuModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white transition">
-                    <i class="fa-solid fa-xmark text-lg"></i>
+    <!-- Add/Edit Menu Modal -->
+    <div id="menuModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div class="flex justify-between items-center pb-3 border-b border-slate-200 mb-4">
+                <h3 class="text-base font-bold text-slate-900 flex items-center gap-2" id="modalFormTitle">
+                    <i class="fa-solid fa-pen-to-square text-brand-600"></i> Edit Menu
+                </h3>
+                <button onclick="closeModal('menuModal')" class="text-slate-400 hover:text-slate-600 text-lg">
+                    <i class="fa-solid fa-xmark"></i>
                 </button>
+            </div>
 
-                <div class="space-y-1">
-                    <h3 id="menu-modal-title" class="text-lg font-bold text-white">Tambah Menu Baru</h3>
-                    <p class="text-xs text-slate-400">Kelola informasi modul dan matrik otorisasi role.</p>
+            <form onsubmit="handleSaveMenu(event)" class="space-y-4">
+                <input type="hidden" id="formItemId">
+
+                <!-- Title & Subtitle -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Judul Menu *</label>
+                    <input type="text" id="formTitle" required placeholder="Contoh: Form Pengajuan Cuti" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none">
                 </div>
 
-                <form id="form-menu" onsubmit="handleMenuSubmit(event)" class="space-y-3">
-                    <input type="hidden" id="form-menu-id">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Subjudul / Deskripsi Singkat *</label>
+                    <input type="text" id="formSubtitle" required placeholder="Contoh: Permohonan cuti tahunan dan sakit pegawai" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                </div>
 
+                <!-- Dropdown Category Selection -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs font-medium text-slate-300 mb-1">Judul Modul</label>
-                        <input type="text" id="form-menu-title" required placeholder="Contoh: Modul Penjualan POS" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-sky-500 outline-none">
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="block text-xs font-medium text-slate-300 mb-1">Kategori</label>
-                            <input type="text" id="form-menu-category" required placeholder="Analitik / Operasional" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-sky-500 outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-slate-300 mb-1">Ikon FontAwesome</label>
-                            <input type="text" id="form-menu-icon" required placeholder="fa-chart-pie" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-sky-500 outline-none">
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-medium text-slate-300 mb-1">Target URL Hyperlink</label>
-                        <input type="url" id="form-menu-url" required placeholder="https://..." class="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-sky-500 outline-none">
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-medium text-slate-300 mb-1">Deskripsi Singkat</label>
-                        <textarea id="form-menu-desc" rows="2" required placeholder="Jelaskan fungsi modul ini secara ringkas..." class="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-sky-500 outline-none"></textarea>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-medium text-slate-300 mb-1">Hak Akses Role (Pilih Berapa Saja)</label>
-                        <div class="grid grid-cols-2 gap-2 text-xs">
-                            <label class="flex items-center space-x-2 bg-slate-900/60 p-2 rounded-lg border border-slate-800 cursor-pointer">
-                                <input type="checkbox" name="role-access" value="SUPER_ADMIN" checked disabled class="rounded border-slate-700 bg-slate-800 text-sky-600">
-                                <span class="text-slate-300">SUPER_ADMIN (Wajib)</span>
-                            </label>
-                            <label class="flex items-center space-x-2 bg-slate-900/60 p-2 rounded-lg border border-slate-800 cursor-pointer">
-                                <input type="checkbox" name="role-access" value="ADMIN" class="rounded border-slate-700 bg-slate-800 text-sky-600">
-                                <span class="text-slate-300">ADMIN</span>
-                            </label>
-                            <label class="flex items-center space-x-2 bg-slate-900/60 p-2 rounded-lg border border-slate-800 cursor-pointer">
-                                <input type="checkbox" name="role-access" value="MANAGER" class="rounded border-slate-700 bg-slate-800 text-sky-600">
-                                <span class="text-slate-300">MANAGER</span>
-                            </label>
-                            <label class="flex items-center space-x-2 bg-slate-900/60 p-2 rounded-lg border border-slate-800 cursor-pointer">
-                                <input type="checkbox" name="role-access" value="STAFF" class="rounded border-slate-700 bg-slate-800 text-sky-600">
-                                <span class="text-slate-300">STAFF</span>
-                            </label>
-                            <label class="flex items-center space-x-2 bg-slate-900/60 p-2 rounded-lg border border-slate-800 cursor-pointer">
-                                <input type="checkbox" name="role-access" value="GUEST" class="rounded border-slate-700 bg-slate-800 text-sky-600">
-                                <span class="text-slate-300">GUEST (Publik)</span>
-                            </label>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Pilih Kategori (Dropdown) *</label>
+                        <select id="formCategorySelect" onchange="handleCategorySelectChange(this.value)" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none bg-white font-medium text-slate-800">
+                            <!-- Populated dynamically -->
+                        </select>
+                        <!-- Inline Custom Category Field -->
+                        <div id="newCategoryContainer" class="hidden mt-2">
+                            <input type="text" id="formNewCategoryInput" placeholder="Ketik nama kategori baru..." class="w-full px-3 py-1.5 border border-amber-300 bg-amber-50 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
                         </div>
                     </div>
-
                     <div>
-                        <label class="block text-xs font-medium text-slate-300 mb-1">Status Keaktifan</label>
-                        <select id="form-menu-status" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-sky-500 outline-none">
-                            <option value="ACTIVE">ACTIVE (Tampil di Portal)</option>
-                            <option value="INACTIVE">INACTIVE (Disembunyikan)</option>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Nomor Urutan (Order)</label>
+                        <input type="number" id="formOrder" min="1" value="1" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Tautan Hyperlink (URL) *</label>
+                    <input type="url" id="formUrl" required placeholder="https://docs.google.com/..." class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none font-mono">
+                </div>
+
+                <!-- FontAwesome Icon Picker -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Icon FontAwesome Class *</label>
+                    <div class="flex gap-2 items-center">
+                        <div class="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-brand-600 text-lg" id="iconPreview">
+                            <i class="fa-solid fa-link"></i>
+                        </div>
+                        <input type="text" id="formIcon" required oninput="updateIconPreview(this.value)" placeholder="fa-calendar-days, fa-receipt, fa-chart-pie" class="flex-grow px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+                    <p class="text-[10px] text-slate-500 mt-1">Contoh: <code class="bg-slate-100 px-1 rounded">fa-calendar-check</code>, <code class="bg-slate-100 px-1 rounded">fa-file-pdf</code>, atau <code class="bg-slate-100 px-1 rounded">fa-headset</code>.</p>
+                </div>
+
+                <!-- Badge & Status -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Label Badge (Opsional)</label>
+                        <input type="text" id="formBadge" placeholder="Misal: Populer, Baru, Utama" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Status Visibilitas</label>
+                        <select id="formStatus" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                            <option value="Active">Active (Tampil)</option>
+                            <option value="Inactive">Inactive (Sembunyi dari Publik)</option>
                         </select>
                     </div>
+                </div>
 
-                    <div class="pt-2 flex justify-end space-x-2">
-                        <button type="button" onclick="closeMenuModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold">Batal</button>
-                        <button type="submit" class="px-5 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-sky-600/20">Simpan Menu</button>
-                    </div>
-                </form>
-            </div>
+                <div class="flex justify-end gap-2 pt-3 border-t border-slate-200">
+                    <button type="button" onclick="closeModal('menuModal')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg">
+                        Batal
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold rounded-lg shadow-sm">
+                        Simpan Menu Data
+                    </button>
+                </div>
+            </form>
         </div>
+    </div>
 
-        <!-- MODAL 3: API SETTINGS MODAL -->
-        <div id="modal-api-settings" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
-            <div class="glass-card w-full max-w-md rounded-2xl p-6 space-y-4 relative shadow-2xl">
-                <button onclick="closeApiModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white transition">
-                    <i class="fa-solid fa-xmark text-lg"></i>
+    <!-- Category Manager Modal -->
+    <div id="categoryManagerModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+            <div class="flex justify-between items-center pb-3 border-b border-slate-200 mb-4">
+                <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <i class="fa-solid fa-layer-group text-indigo-600"></i> Kelola Kategori Menu
+                </h3>
+                <button onclick="closeModal('categoryManagerModal')" class="text-slate-400 hover:text-slate-600 text-lg">
+                    <i class="fa-solid fa-xmark"></i>
                 </button>
+            </div>
 
-                <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-400 flex items-center justify-center text-lg">
-                        <i class="fa-solid fa-plug"></i>
-                    </div>
-                    <div>
-                        <h3 class="text-base font-bold text-white">Konfigurasi GAS Web App API</h3>
-                        <p class="text-xs text-slate-400">Integrasikan dengan Google Apps Script Backend</p>
-                    </div>
-                </div>
-
-                <div class="space-y-3">
-                    <div>
-                        <label class="block text-xs font-medium text-slate-300 mb-1">Mode Operasi API</label>
-                        <select id="api-mode-select" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-sky-500 outline-none">
-                            <option value="SIMULATION">Mode Simulasi (Offline Mock Data)</option>
-                            <option value="LIVE">Live GAS API (Google Apps Script)</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-medium text-slate-300 mb-1">GAS Web App URL (Deploy Exec URL)</label>
-                        <input type="url" id="gas-url-input" placeholder="https://script.google.com/macros/s/.../exec" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-sky-500 outline-none font-mono">
-                        <p class="text-[10px] text-slate-500 mt-1">Dapatkan URL ini setelah melakukan "Deploy > Web App" pada Google Apps Script Anda.</p>
-                    </div>
-                </div>
-
-                <div class="pt-2 flex justify-end space-x-2">
-                    <button onclick="closeApiModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold">Tutup</button>
-                    <button onclick="saveConfig()" class="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-sky-600/20">Terapkan & Simpan</button>
+            <!-- Add Category Quick Form -->
+            <div class="mb-4 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Tambah Kategori Baru</label>
+                <div class="flex gap-2">
+                    <input type="text" id="quickCategoryInput" placeholder="Tulis nama kategori..." class="flex-grow px-3 py-1.5 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    <button onclick="handleAddQuickCategory()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold transition-all">
+                        Tambah
+                    </button>
                 </div>
             </div>
+
+            <!-- Categories List Table -->
+            <div class="max-h-60 overflow-y-auto custom-scrollbar border border-slate-200 rounded-xl divide-y divide-slate-100">
+                <div id="categoryManagerList" class="p-1">
+                    <!-- Dynamic List rendered via JS -->
+                </div>
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-slate-200 flex justify-end">
+                <button onclick="closeModal('categoryManagerModal')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg">
+                    Selesai
+                </button>
+            </div>
         </div>
-
-        <!-- Floating Action Button (FAB) - API Settings -->
-        <button onclick="openApiModal()" class="fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full bg-sky-600 hover:bg-sky-500 text-white shadow-xl shadow-sky-600/40 flex items-center justify-center transition hover:scale-105 group" title="Buka API Settings">
-            <i class="fa-solid fa-plug text-lg group-hover:rotate-12 transition"></i>
-        </button>
-
-    </div> <!-- End #app-viewport-root -->
+    </div>
 
     <script>
-        /* ROLES DEFINITION */
-        const ROLES = {
-            SUPER_ADMIN: { name: 'Super Admin', level: 4, badgeBg: 'bg-purple-500/20', badgeText: 'text-purple-400' },
-            ADMIN: { name: 'Admin Operasional', level: 3, badgeBg: 'bg-sky-500/20', badgeText: 'text-sky-400' },
-            MANAGER: { name: 'Manager', level: 2, badgeBg: 'bg-indigo-500/20', badgeText: 'text-indigo-400' },
-            STAFF: { name: 'Staff', level: 1, badgeBg: 'bg-emerald-500/20', badgeText: 'text-emerald-400' },
-            GUEST: { name: 'Guest / Publik', level: 0, badgeBg: 'bg-slate-700', badgeText: 'text-slate-300' }
+        // State Application
+        let appState = {
+            isAdmin: false,
+            adminPinToken: '',
+            selectedCategory: 'ALL',
+            searchQuery: '',
+            categories: ['Operasional', 'Keuangan', 'SDM & HR', 'TI & System'],
+            settings: {
+                APP_TITLE: 'Portal Terpadu Apps',
+                APP_SUBTITLE: 'Akses Cepat Layanan & Informasi Perusahaan'
+            },
+            items: [
+                {
+                    id: 'MENU_1',
+                    category: 'Operasional',
+                    title: 'Form Permohonan Cuti',
+                    subtitle: 'Pengajuan cuti tahunan, sakit, dan izin pegawai',
+                    url: 'https://docs.google.com',
+                    icon: 'fa-calendar-check',
+                    badge: 'Populer',
+                    order: 1,
+                    status: 'Active'
+                },
+                {
+                    id: 'MENU_2',
+                    category: 'Keuangan',
+                    title: 'Klaim Reimbursment',
+                    subtitle: 'Pengajuan klaim dana operasional & perjalanan dinas',
+                    url: 'https://sheets.google.com',
+                    icon: 'fa-receipt',
+                    badge: 'Keuangan',
+                    order: 2,
+                    status: 'Active'
+                },
+                {
+                    id: 'MENU_3',
+                    category: 'SDM & HR',
+                    title: 'Portal Kehadiran / Absensi',
+                    subtitle: 'Cek riwayat rekap presensi harian karyawan',
+                    url: 'https://drive.google.com',
+                    icon: 'fa-user-clock',
+                    badge: '',
+                    order: 3,
+                    status: 'Active'
+                },
+                {
+                    id: 'MENU_4',
+                    category: 'TI & System',
+                    title: 'Helpdesk Support Ticket',
+                    subtitle: 'Pengajuan bantuan perbaikan perangkat & sistem',
+                    url: 'https://google.com',
+                    icon: 'fa-headset',
+                    badge: 'Baru',
+                    order: 4,
+                    status: 'Active'
+                }
+            ]
         };
 
-        /* MOCK USERS WITH PASSWORDS FOR LOCAL SIMULATION MODE */
-        const mockUsers = [
-            { user_id: 'USR-001', username: 'ahmad_super', fullname: 'Ahmad Fathoni', email: 'ahmad@company.com', password: 'super123', role: 'SUPER_ADMIN', status: 'ACTIVE' },
-            { user_id: 'USR-002', username: 'budi_admin', fullname: 'Budi Santoso', email: 'budi@company.com', password: 'admin123', role: 'ADMIN', status: 'ACTIVE' },
-            { user_id: 'USR-003', username: 'citra_mgr', fullname: 'Citra Lestari', email: 'citra@company.com', password: 'mgr123', role: 'MANAGER', status: 'ACTIVE' },
-            { user_id: 'USR-004', username: 'dewi_staff', fullname: 'Dewi Anggraini', email: 'dewi@company.com', password: 'staff123', role: 'STAFF', status: 'ACTIVE' }
-        ];
-
-        /* MOCK DATA INITIAL STATE */
-        const initialMockMenus = [
-            {
-                menu_id: 'M01',
-                title: 'Executive Dashboard',
-                description: 'Ringkasan KPI perusahaan, grafik pendapatan, dan laporan analitik eksekutif.',
-                icon: 'fa-chart-pie',
-                category: 'Analitik & Laporan',
-                target_url: 'https://example.com/dashboard',
-                allowed_roles: ['SUPER_ADMIN', 'MANAGER'],
-                status: 'ACTIVE'
-            },
-            {
-                menu_id: 'M02',
-                title: 'Manajemen Keuangan',
-                description: 'Pengelolaan arus kas, invoice, pembukuan, dan pengeluaran.',
-                icon: 'fa-wallet',
-                category: 'Analitik & Laporan',
-                target_url: 'https://example.com/finance',
-                allowed_roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
-                status: 'ACTIVE'
-            },
-            {
-                menu_id: 'M03',
-                title: 'Katalog Produk & Stok',
-                description: 'Inventarisasi produk, kelola harga, kuantitas, dan kategori stok.',
-                icon: 'fa-boxes-stacked',
-                category: 'Operasional',
-                target_url: 'https://example.com/inventory',
-                allowed_roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'STAFF'],
-                status: 'ACTIVE'
-            },
-            {
-                menu_id: 'M04',
-                title: 'Input Transaksi Penjualan',
-                description: 'Modul Point of Sales (POS) untuk pemrosesan order harian.',
-                icon: 'fa-cash-register',
-                category: 'Operasional',
-                target_url: 'https://example.com/pos',
-                allowed_roles: ['SUPER_ADMIN', 'ADMIN', 'STAFF'],
-                status: 'ACTIVE'
-            },
-            {
-                menu_id: 'M05',
-                title: 'Master Data User & Role',
-                description: 'Pengaturan otorisasi akun pengguna, reset password, & matriks hak akses.',
-                icon: 'fa-users-gear',
-                category: 'Pengaturan Sistem',
-                target_url: 'https://example.com/users',
-                allowed_roles: ['SUPER_ADMIN'],
-                status: 'ACTIVE'
-            },
-            {
-                menu_id: 'M06',
-                title: 'Pusat Bantuan & SOP',
-                description: 'Panduan penggunaan aplikasi internal dan modul dokumentasi umum.',
-                icon: 'fa-book-open',
-                category: 'Umum & Edukasi',
-                target_url: 'https://example.com/help',
-                allowed_roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'STAFF', 'GUEST'],
-                status: 'ACTIVE'
-            }
-        ];
-
-        const mockLogs = [
-            { timestamp: new Date().toLocaleString(), username: 'ahmad_super', role: 'SUPER_ADMIN', action: 'LOGIN', details: 'Berhasil masuk ke portal' }
-        ];
-
-        /* APPLICATION STATE */
-        let state = {
-            currentRole: 'GUEST',
-            username: 'Guest User',
-            fullname: 'Guest User',
-            email: '',
-            activeCategory: 'ALL',
-            activeTab: 'portal',
-            config: {
-                mode: 'SIMULATION',
-                gasUrl: ''
-            },
-            menus: [...initialMockMenus],
-            users: [...mockUsers],
-            logs: [...mockLogs]
-        };
-
-        // Initialize App on DOM Load
         window.addEventListener('DOMContentLoaded', () => {
-            loadConfigStorage();
-            renderAll();
+            fetchInitialPayload();
         });
 
-        function loadConfigStorage() {
-            const savedUrl = localStorage.getItem('gas_app_url') || '';
-            const savedMode = localStorage.getItem('gas_app_mode') || 'SIMULATION';
-            state.config.gasUrl = savedUrl;
-            state.config.mode = savedMode;
-
-            document.getElementById('gas-url-input').value = savedUrl;
-            document.getElementById('api-mode-select').value = savedMode;
+        // Background Sync Helper to show spinner
+        function showSyncing(isSyncing) {
+            const el = document.getElementById('syncIndicator');
+            if (!el) return;
+            if (isSyncing) el.classList.remove('hidden');
+            else el.classList.add('hidden');
         }
 
-        // Global Save Configuration (API Settings)
-        window.saveConfig = function() {
-            const mode = document.getElementById('api-mode-select').value;
-            const url = document.getElementById('gas-url-input').value.trim();
-
-            if (mode === 'LIVE' && !url) {
-                alert('Silakan masukkan Web App URL Google Apps Script Anda untuk mode LIVE.');
-                return;
-            }
-
-            state.config.mode = mode;
-            state.config.gasUrl = url;
-
-            localStorage.setItem('gas_app_mode', mode);
-            localStorage.setItem('gas_app_url', url);
-
-            closeApiModal();
-            renderHeader();
-
-            if (mode === 'LIVE') {
-                fetchLiveDataFromGas();
-            } else {
-                alert('Konfigurasi disimpan. Mode: SIMULASI.');
-                renderAll();
-            }
-        };
-
-        window.openApiModal = function() {
-            document.getElementById('modal-api-settings').classList.remove('hidden');
-        };
-
-        window.closeApiModal = function() {
-            document.getElementById('modal-api-settings').classList.add('hidden');
-        };
-
-        window.toggleAuthModal = function() {
-            if (state.currentRole !== 'GUEST') {
-                logout();
-            } else {
-                document.getElementById('modal-auth').classList.remove('hidden');
-                document.getElementById('login-error-alert').classList.add('hidden');
-            }
-        };
-
-        window.closeAuthModal = function() {
-            document.getElementById('modal-auth').classList.add('hidden');
-        };
-
-        window.togglePasswordVisibility = function() {
-            const pwdInput = document.getElementById('login-password');
-            const icon = document.getElementById('password-toggle-icon');
-            if (pwdInput.type === 'password') {
-                pwdInput.type = 'text';
-                icon.className = 'fa-solid fa-eye-slash text-xs';
-            } else {
-                pwdInput.type = 'password';
-                icon.className = 'fa-solid fa-eye text-xs';
-            }
-        };
-
-        window.fillDemoCredentials = function(username, password) {
-            document.getElementById('login-username').value = username;
-            document.getElementById('login-password').value = password;
-            document.getElementById('login-error-alert').classList.add('hidden');
-        };
-
-        window.handleLoginSubmit = function(e) {
-            e.preventDefault();
-            const usernameInput = document.getElementById('login-username').value.trim();
-            const passwordInput = document.getElementById('login-password').value.trim();
-            const errorAlert = document.getElementById('login-error-alert');
-            const errorMsg = document.getElementById('login-error-msg');
-            const submitBtn = document.getElementById('btn-login-submit');
-
-            errorAlert.classList.add('hidden');
-
-            if (state.config.mode === 'SIMULATION') {
-                // Local Simulation Login
-                const user = state.users.find(u => u.username === usernameInput && u.password === passwordInput);
-                if (user) {
-                    if (user.status !== 'ACTIVE') {
-                        errorMsg.innerText = "Akun Anda tidak aktif! Hubungi Admin.";
-                        errorAlert.classList.remove('hidden');
-                        return;
-                    }
-
-                    state.currentRole = user.role;
-                    state.username = user.username;
-                    state.fullname = user.fullname;
-                    state.email = user.email;
-
-                    state.logs.unshift({
-                        timestamp: new Date().toLocaleString(),
-                        username: user.username,
-                        role: user.role,
-                        action: 'LOGIN',
-                        details: `Login berhasil sebagai ${user.fullname} (${user.role})`
-                    });
-
-                    closeAuthModal();
-                    renderAll();
-                } else {
-                    errorMsg.innerText = "Username atau password salah!";
-                    errorAlert.classList.remove('hidden');
-                }
-            } else {
-                // Live GAS API Login
-                if (!state.config.gasUrl) {
-                    alert('URL Web App GAS belum dikonfigurasi. Atur di API Settings.');
-                    return;
-                }
-
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i><span>Memverifikasi...</span>`;
-
-                fetch(state.config.gasUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({
-                        action: 'login',
-                        username: usernameInput,
-                        password: passwordInput
+        // Fetch payload initial fast load
+        function fetchInitialPayload() {
+            if (typeof google !== 'undefined' && google.script && google.script.run) {
+                showSyncing(true);
+                google.script.run
+                    .withSuccessHandler((res) => {
+                        showSyncing(false);
+                        if (res && res.success) {
+                            if (res.items && res.items.length > 0) appState.items = res.items;
+                            if (res.settings && res.settings.APP_TITLE) {
+                                appState.settings = res.settings;
+                                document.getElementById('headerAppTitle').innerText = res.settings.APP_TITLE;
+                                document.getElementById('headerAppSubtitle').innerText = res.settings.APP_SUBTITLE;
+                            }
+                        }
+                        refreshUI();
                     })
-                })
-                .then(res => res.json())
-                .then(res => {
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i><span>Masuk Sekarang</span>`;
-
-                    if (res.success && res.data) {
-                        const user = res.data;
-                        state.currentRole = user.role;
-                        state.username = user.username;
-                        state.fullname = user.fullname;
-                        state.email = user.email;
-
-                        closeAuthModal();
-                        fetchLiveDataFromGas(); // Refresh menu data for logged in user
-                    } else {
-                        errorMsg.innerText = res.message || "Username atau password salah!";
-                        errorAlert.classList.remove('hidden');
-                    }
-                })
-                .catch(err => {
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i><span>Masuk Sekarang</span>`;
-                    errorMsg.innerText = "Gagal terhubung ke GAS API: " + err.toString();
-                    errorAlert.classList.remove('hidden');
-                });
-            }
-        };
-
-        function logout() {
-            state.logs.unshift({
-                timestamp: new Date().toLocaleString(),
-                username: state.username,
-                role: state.currentRole,
-                action: 'LOGOUT',
-                details: `Logout dari portal`
-            });
-
-            state.currentRole = 'GUEST';
-            state.username = 'Guest User';
-            state.fullname = 'Guest User';
-            state.email = '';
-
-            renderAll();
-        }
-
-        window.switchTab = function(tabName) {
-            state.activeTab = tabName;
-            
-            document.querySelectorAll('#admin-tabs-container button').forEach(btn => {
-                btn.className = "px-4 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition flex items-center space-x-2 whitespace-nowrap";
-            });
-
-            const activeBtn = document.getElementById(`tab-${tabName}`);
-            if (activeBtn) {
-                activeBtn.className = "px-4 py-2 rounded-lg text-xs font-semibold transition bg-sky-600 text-white shadow-md shadow-sky-600/20 flex items-center space-x-2 whitespace-nowrap";
-            }
-
-            document.getElementById('section-portal').classList.add('hidden');
-            document.getElementById('section-users').classList.add('hidden');
-            document.getElementById('section-logs').classList.add('hidden');
-
-            document.getElementById(`section-${tabName}`).classList.remove('hidden');
-        };
-
-        window.filterCategory = function(catName) {
-            state.activeCategory = catName;
-            renderCategories();
-            renderMenuGrid();
-        };
-
-        function renderAll() {
-            renderHeader();
-            renderCategories();
-            renderMenuGrid();
-            renderUsersTable();
-            renderLogsTable();
-        }
-
-        function renderHeader() {
-            // Update User Info Display
-            const roleObj = ROLES[state.currentRole];
-            document.getElementById('current-user-display').innerText = `${state.fullname} (${roleObj.name})`;
-
-            // Update Auth Button
-            const authBtnLabel = document.getElementById('auth-action-label');
-            const authBtnIcon = document.getElementById('auth-action-icon');
-            if (state.currentRole === 'GUEST') {
-                authBtnLabel.innerText = "Login";
-                authBtnIcon.className = "fa-solid fa-right-to-bracket";
+                    .withFailureHandler((err) => {
+                        showSyncing(false);
+                        console.error('Failed to load initial data:', err);
+                        refreshUI();
+                    })
+                    .getDashboardPayload();
             } else {
-                authBtnLabel.innerText = "Logout";
-                authBtnIcon.className = "fa-solid fa-right-from-bracket";
+                refreshUI();
             }
+        }
 
-            // Update API Status Badge
-            const statusBadgeText = document.getElementById('api-status-text');
-            if (state.config.mode === 'LIVE') {
-                statusBadgeText.innerText = "LIVE GAS API";
+        function refreshUI() {
+            syncCategoryList();
+            renderHeaderAndBadges();
+            renderCategoryPills();
+            renderMenuCards();
+        }
+
+        function syncCategoryList() {
+            const dataCategories = appState.items.map(item => item.category);
+            const combined = Array.from(new Set([...appState.categories, ...dataCategories])).filter(Boolean);
+            appState.categories = combined;
+        }
+
+        function renderHeaderAndBadges() {
+            const container = document.getElementById('adminBadgeContainer');
+            if (appState.isAdmin) {
+                container.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Mode Admin
+                        </span>
+                        <button onclick="logoutAdmin()" class="text-xs text-red-600 hover:text-red-700 font-medium underline ml-1">
+                            Keluar
+                        </button>
+                    </div>
+                `;
+                document.getElementById('adminActionButtons').classList.remove('hidden');
             } else {
-                statusBadgeText.innerText = "Simulasi Mode";
-            }
-
-            // Show/Hide Admin Controls
-            const isAdmin = state.currentRole === 'SUPER_ADMIN' || state.currentRole === 'ADMIN';
-            document.getElementById('admin-tabs-container').classList.toggle('hidden', !isAdmin);
-            document.getElementById('admin-menu-actions').classList.toggle('hidden', !isAdmin);
-
-            if (!isAdmin && state.activeTab !== 'portal') {
-                switchTab('portal');
+                container.innerHTML = `
+                    <button onclick="openModal('loginModal')" class="px-3 py-1.5 border border-slate-300 hover:border-brand-500 text-slate-700 hover:text-brand-600 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all">
+                        <i class="fa-solid fa-lock text-slate-400"></i> Admin Login
+                    </button>
+                `;
+                document.getElementById('adminActionButtons').classList.add('hidden');
             }
         }
 
-        function renderCategories() {
-            const categories = ['ALL', ...new Set(state.menus.map(m => m.category))];
-            const container = document.getElementById('category-filters');
-            
-            container.innerHTML = categories.map(cat => `
-                <button onclick="filterCategory('${cat}')" class="px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition ${state.activeCategory === cat ? 'bg-sky-600 text-white shadow-md shadow-sky-600/20' : 'bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-slate-200 border border-slate-800'}">
-                    ${cat === 'ALL' ? 'Semua Modul' : cat}
-                </button>
-            `).join('');
-        }
+        function renderCategoryPills() {
+            syncCategoryList();
+            const categories = ['ALL', ...appState.categories];
+            const container = document.getElementById('categoryPills');
 
-        function renderMenuGrid() {
-            const grid = document.getElementById('menu-grid');
-            const isAdmin = state.currentRole === 'SUPER_ADMIN' || state.currentRole === 'ADMIN';
-
-            // Filter menus based on role & active category
-            const filtered = state.menus.filter(menu => {
-                // Status check
-                if (menu.status !== 'ACTIVE' && !isAdmin) return false;
+            container.innerHTML = categories.map(cat => {
+                const isActive = appState.selectedCategory === cat;
+                const activeClasses = isActive 
+                    ? 'bg-brand-600 text-white shadow-sm' 
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900';
                 
-                // Role check
-                const isAllowedRole = isAdmin || menu.allowed_roles.includes(state.currentRole);
-                if (!isAllowedRole) return false;
+                const label = cat === 'ALL' ? 'Semua Kategori' : cat;
+                return `
+                    <button onclick="selectCategory('${cat}')" class="px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${activeClasses}">
+                        ${label}
+                    </button>
+                `;
+            }).join('');
+        }
 
-                // Category check
-                if (state.activeCategory !== 'ALL' && menu.category !== state.activeCategory) return false;
+        function selectCategory(cat) {
+            appState.selectedCategory = cat;
+            renderCategoryPills();
+            renderMenuCards();
+        }
 
-                return true;
+        function filterMenu() {
+            appState.searchQuery = document.getElementById('searchInput').value.toLowerCase().trim();
+            renderMenuCards();
+        }
+
+        function renderMenuCards() {
+            const grid = document.getElementById('menuGrid');
+            const emptyState = document.getElementById('emptyState');
+
+            const filtered = appState.items.filter(item => {
+                const matchCategory = appState.selectedCategory === 'ALL' || item.category === appState.selectedCategory;
+                const matchSearch = !appState.searchQuery || 
+                    item.title.toLowerCase().includes(appState.searchQuery) ||
+                    item.subtitle.toLowerCase().includes(appState.searchQuery) ||
+                    item.category.toLowerCase().includes(appState.searchQuery);
+                const matchStatus = appState.isAdmin || item.status === 'Active';
+
+                return matchCategory && matchSearch && matchStatus;
             });
 
             if (filtered.length === 0) {
-                grid.innerHTML = `
-                    <div class="col-span-full text-center py-12 glass-card rounded-2xl">
-                        <i class="fa-solid fa-folder-open text-4xl text-slate-600 mb-3"></i>
-                        <p class="text-sm font-medium text-slate-400">Tidak ada modul aplikasi yang tersedia untuk kategori/peran Anda saat ini.</p>
-                    </div>
-                `;
+                grid.innerHTML = '';
+                emptyState.classList.remove('hidden');
                 return;
             }
 
-            grid.innerHTML = filtered.map(menu => `
-                <div class="glass-card rounded-2xl p-5 flex flex-col justify-between hover:border-slate-700 transition space-y-4 group">
-                    <div class="space-y-3">
-                        <div class="flex items-center justify-between">
-                            <div class="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center justify-center text-lg group-hover:scale-110 transition">
-                                <i class="fa-solid ${menu.icon || 'fa-cubes'}"></i>
-                            </div>
-                            <span class="px-2 py-0.5 text-[10px] font-semibold bg-slate-800 text-slate-300 rounded-md border border-slate-700">
-                                ${menu.category}
-                            </span>
-                        </div>
+            emptyState.classList.add('hidden');
+            grid.innerHTML = filtered.map(item => {
+                let iconClass = item.icon.includes('fa-') ? item.icon : `fa-solid fa-${item.icon}`;
+                if (!iconClass.startsWith('fa-')) iconClass = `fa-solid ${iconClass}`;
+
+                return `
+                    <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between group relative overflow-hidden">
                         <div>
-                            <h4 class="text-base font-bold text-white group-hover:text-sky-400 transition">${menu.title}</h4>
-                            <p class="text-xs text-slate-400 line-clamp-2 mt-1 leading-relaxed">${menu.description}</p>
-                        </div>
-                    </div>
-
-                    <div class="space-y-3 pt-2 border-t border-slate-800/80">
-                        <div class="flex items-center justify-between text-[10px] text-slate-500">
-                            <span>Hak Akses:</span>
-                            <div class="flex flex-wrap gap-1">
-                                ${menu.allowed_roles.map(r => `<span class="px-1.5 py-0.2 rounded bg-slate-900 border border-slate-800 text-slate-400 font-mono">${r}</span>`).join('')}
+                            <div class="flex justify-between items-start mb-3">
+                                <div class="w-12 h-12 rounded-xl bg-brand-50 border border-brand-100 flex items-center justify-center text-brand-600 text-xl group-hover:scale-105 group-hover:bg-brand-600 group-hover:text-white transition-all duration-200">
+                                    <i class="${iconClass}"></i>
+                                </div>
+                                
+                                <div class="flex items-center gap-1">
+                                    ${item.badge ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">${item.badge}</span>` : ''}
+                                    ${appState.isAdmin && item.status === 'Inactive' ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700">Nonaktif</span>` : ''}
+                                </div>
                             </div>
+
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-brand-600 block mb-1">${item.category}</span>
+                            <h3 class="font-bold text-slate-900 text-base leading-snug group-hover:text-brand-600 transition-colors line-clamp-1">${item.title}</h3>
+                            <p class="text-xs text-slate-500 mt-1 line-clamp-2 leading-relaxed">${item.subtitle}</p>
                         </div>
 
-                        <div class="flex items-center justify-between gap-2 pt-1">
-                            <!-- Direct Hyperlink Opening in New Tab -->
-                            <a href="${menu.target_url}" target="_blank" onclick="logMenuClick('${menu.title}')" class="flex-1 px-3 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-sky-600/20 text-center transition flex items-center justify-center space-x-1.5">
-                                <span>Buka Modul</span>
-                                <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                        <div class="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between">
+                            <a href="${item.url}" target="_blank" class="inline-flex items-center text-xs font-bold text-brand-600 hover:text-brand-700 gap-1.5 group/link">
+                                Buka Aplikasi <i class="fa-solid fa-arrow-up-right-from-square text-[10px] group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform"></i>
                             </a>
 
-                            ${isAdmin ? `
-                                <button onclick="openMenuModal('${menu.menu_id}')" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs border border-slate-700" title="Edit Modul">
-                                    <i class="fa-solid fa-pen"></i>
-                                </button>
-                                <button onclick="deleteMenu('${menu.menu_id}')" class="p-2 bg-rose-950/40 hover:bg-rose-900/60 text-rose-400 rounded-xl text-xs border border-rose-800/40" title="Hapus Modul">
-                                    <i class="fa-solid fa-trash"></i>
-                                </button>
+                            ${appState.isAdmin ? `
+                                <div class="flex items-center gap-1">
+                                    <button onclick="openEditMenuModal('${item.id}')" title="Edit Menu" class="p-1.5 text-slate-400 hover:text-brand-600 rounded-lg hover:bg-slate-100">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </button>
+                                    <button onclick="confirmDeleteMenu('${item.id}')" title="Hapus Menu" class="p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-slate-100">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                </div>
                             ` : ''}
                         </div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
-        function renderUsersTable() {
-            const tbody = document.getElementById('users-table-body');
-            tbody.innerHTML = state.users.map(u => `
-                <tr class="hover:bg-slate-900/40 transition">
-                    <td class="p-4 font-mono text-slate-400">${u.user_id}</td>
-                    <td class="p-4 font-semibold text-white">${u.fullname}</td>
-                    <td class="p-4">
-                        <div class="text-slate-200 font-mono">${u.username}</div>
-                        <div class="text-[10px] text-slate-500">${u.email}</div>
-                    </td>
-                    <td class="p-4">
-                        <span class="px-2 py-0.5 rounded text-[10px] font-bold ${ROLES[u.role]?.badgeBg || 'bg-slate-800'} ${ROLES[u.role]?.badgeText || 'text-slate-300'}">
-                            ${u.role}
-                        </span>
-                    </td>
-                    <td class="p-4">
-                        <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                            ${u.status}
-                        </span>
-                    </td>
-                </tr>
-            `).join('');
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
         }
 
-        function renderLogsTable() {
-            const tbody = document.getElementById('logs-table-body');
-            tbody.innerHTML = state.logs.map(l => `
-                <tr class="hover:bg-slate-900/40 transition">
-                    <td class="p-4 font-mono text-slate-500 whitespace-nowrap">${l.timestamp}</td>
-                    <td class="p-4 font-semibold text-white">${l.username}</td>
-                    <td class="p-4">
-                        <span class="px-2 py-0.5 rounded text-[10px] font-bold ${ROLES[l.role]?.badgeBg || 'bg-slate-800'} ${ROLES[l.role]?.badgeText || 'text-slate-300'}">
-                            ${l.role}
-                        </span>
-                    </td>
-                    <td class="p-4 font-mono text-sky-400">${l.action}</td>
-                    <td class="p-4 text-slate-400">${l.details}</td>
-                </tr>
-            `).join('');
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
         }
 
-        window.openMenuModal = function(menuId = null) {
-            const form = document.getElementById('form-menu');
-            form.reset();
-            
-            if (menuId) {
-                const item = state.menus.find(m => m.menu_id === menuId);
-                if (item) {
-                    document.getElementById('menu-modal-title').innerText = "Edit Menu Modul";
-                    document.getElementById('form-menu-id').value = item.menu_id;
-                    document.getElementById('form-menu-title').value = item.title;
-                    document.getElementById('form-menu-category').value = item.category;
-                    document.getElementById('form-menu-icon').value = item.icon;
-                    document.getElementById('form-menu-url').value = item.target_url;
-                    document.getElementById('form-menu-desc').value = item.description;
-                    document.getElementById('form-menu-status').value = item.status;
-
-                    // Set Role Checkboxes
-                    document.querySelectorAll('input[name="role-access"]').forEach(cb => {
-                        cb.checked = item.allowed_roles.includes(cb.value) || cb.value === 'SUPER_ADMIN';
-                    });
-                }
-            } else {
-                document.getElementById('menu-modal-title').innerText = "Tambah Menu Baru";
-                document.getElementById('form-menu-id').value = '';
-            }
-
-            document.getElementById('modal-menu-form').classList.remove('hidden');
-        };
-
-        window.closeMenuModal = function() {
-            document.getElementById('modal-menu-form').classList.add('hidden');
-        };
-
-        window.handleMenuSubmit = function(e) {
+        function handleAdminLogin(e) {
             e.preventDefault();
+            const pin = document.getElementById('adminPinInput').value;
             
-            const id = document.getElementById('form-menu-id').value;
-            const title = document.getElementById('form-menu-title').value.trim();
-            const category = document.getElementById('form-menu-category').value.trim();
-            const icon = document.getElementById('form-menu-icon').value.trim();
-            const target_url = document.getElementById('form-menu-url').value.trim();
-            const description = document.getElementById('form-menu-desc').value.trim();
-            const status = document.getElementById('form-menu-status').value;
-
-            // Get selected roles
-            const allowed_roles = ['SUPER_ADMIN'];
-            document.querySelectorAll('input[name="role-access"]:checked').forEach(cb => {
-                if (!allowed_roles.includes(cb.value)) allowed_roles.push(cb.value);
-            });
-
-            const payload = {
-                menu_id: id || 'M' + String(state.menus.length + 1).padStart(2, '0'),
-                title, category, icon, target_url, description, allowed_roles, status
-            };
-
-            if (state.config.mode === 'LIVE' && state.config.gasUrl) {
-                // Post to Live GAS API
-                fetch(state.config.gasUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({
-                        action: 'saveMenu',
-                        payload: payload,
-                        operator: state.username,
-                        operatorRole: state.currentRole
-                    })
-                })
-                .then(res => res.json())
-                .then(res => {
-                    if (res.success) {
-                        alert('Menu berhasil disimpan ke Google Sheets!');
-                        fetchLiveDataFromGas();
-                    } else {
-                        alert('Gagal menyimpan menu: ' + res.message);
-                    }
-                })
-                .catch(err => alert('Error GAS POST: ' + err.toString()));
-            } else {
-                // Local Simulation
-                if (id) {
-                    const idx = state.menus.findIndex(m => m.menu_id === id);
-                    if (idx !== -1) state.menus[idx] = payload;
-                } else {
-                    state.menus.push(payload);
-                }
-
-                state.logs.unshift({
-                    timestamp: new Date().toLocaleString(),
-                    username: state.username,
-                    role: state.currentRole,
-                    action: id ? 'UPDATE_MENU' : 'ADD_MENU',
-                    details: `Menyimpan modul: ${title}`
-                });
-                renderAll();
-            }
-
-            closeMenuModal();
-        };
-
-        window.deleteMenu = function(menuId) {
-            if (confirm(`Apakah Anda yakin ingin menghapus modul ID ${menuId}?`)) {
-                if (state.config.mode === 'LIVE' && state.config.gasUrl) {
-                    fetch(state.config.gasUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                        body: JSON.stringify({
-                            action: 'deleteMenu',
-                            menu_id: menuId,
-                            operator: state.username,
-                            operatorRole: state.currentRole
-                        })
-                    })
-                    .then(res => res.json())
-                    .then(res => {
+            if (typeof google !== 'undefined' && google.script && google.script.run) {
+                showSyncing(true);
+                google.script.run
+                    .withSuccessHandler((res) => {
+                        showSyncing(false);
                         if (res.success) {
-                            alert('Menu berhasil dihapus dari Google Sheets!');
-                            fetchLiveDataFromGas();
+                            appState.isAdmin = true;
+                            appState.adminPinToken = pin;
+                            closeModal('loginModal');
+                            document.getElementById('adminPinInput').value = '';
+                            refreshUI();
                         } else {
-                            alert('Gagal menghapus: ' + res.message);
+                            alert(res.message || 'PIN Admin Salah!');
                         }
                     })
-                    .catch(err => alert('Error GAS POST: ' + err.toString()));
+                    .verifyAdminPin(pin);
+            } else {
+                if (pin === "123456") {
+                    appState.isAdmin = true;
+                    appState.adminPinToken = "123456";
+                    closeModal('loginModal');
+                    document.getElementById('adminPinInput').value = '';
+                    refreshUI();
                 } else {
-                    state.menus = state.menus.filter(m => m.menu_id !== menuId);
-                    state.logs.unshift({
-                        timestamp: new Date().toLocaleString(),
-                        username: state.username,
-                        role: state.currentRole,
-                        action: 'DELETE_MENU',
-                        details: `Menghapus modul ID: ${menuId}`
-                    });
-                    renderAll();
+                    alert('PIN Admin Salah! Gunakan PIN default: 123456');
                 }
             }
-        };
+        }
 
-        window.logMenuClick = function(menuTitle) {
-            state.logs.unshift({
-                timestamp: new Date().toLocaleString(),
-                username: state.username,
-                role: state.currentRole,
-                action: 'OPEN_MODULE',
-                details: `Membuka modul: ${menuTitle}`
-            });
+        function logoutAdmin() {
+            appState.isAdmin = false;
+            appState.adminPinToken = '';
+            refreshUI();
+        }
 
-            if (state.config.mode === 'LIVE' && state.config.gasUrl) {
-                fetch(state.config.gasUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({
-                        action: 'logMenuClick',
-                        username: state.username,
-                        role: state.currentRole,
-                        menuTitle: menuTitle
-                    })
-                }).catch(err => console.error(err));
+        function updateIconPreview(val) {
+            const preview = document.getElementById('iconPreview');
+            let iconClass = val.includes('fa-') ? val : `fa-solid fa-${val}`;
+            if (!iconClass.startsWith('fa-')) iconClass = `fa-solid ${iconClass}`;
+            preview.innerHTML = `<i class="${iconClass}"></i>`;
+        }
+
+        function populateCategoryDropdown(selectedVal = '') {
+            syncCategoryList();
+            const selectEl = document.getElementById('formCategorySelect');
+            const newContainer = document.getElementById('newCategoryContainer');
+            newContainer.classList.add('hidden');
+            document.getElementById('formNewCategoryInput').value = '';
+
+            let html = appState.categories.map(cat => 
+                `<option value="${cat}" ${cat === selectedVal ? 'selected' : ''}>${cat}</option>`
+            ).join('');
+
+            html += `<option value="__NEW_CATEGORY__" class="font-semibold text-brand-600">+ Tambah Kategori Baru...</option>`;
+            selectEl.innerHTML = html;
+
+            if (selectedVal && !appState.categories.includes(selectedVal)) {
+                selectEl.value = '__NEW_CATEGORY__';
+                newContainer.classList.remove('hidden');
+                document.getElementById('formNewCategoryInput').value = selectedVal;
+            }
+        }
+
+        function handleCategorySelectChange(val) {
+            const newContainer = document.getElementById('newCategoryContainer');
+            if (val === '__NEW_CATEGORY__') {
+                newContainer.classList.remove('hidden');
+                document.getElementById('formNewCategoryInput').focus();
+            } else {
+                newContainer.classList.add('hidden');
+            }
+        }
+
+        function openAddMenuModal() {
+            document.getElementById('modalFormTitle').innerText = 'Tambah Menu Icon Baru';
+            document.getElementById('formItemId').value = '';
+            document.getElementById('formTitle').value = '';
+            document.getElementById('formSubtitle').value = '';
+            populateCategoryDropdown(appState.categories[0] || '');
+            document.getElementById('formUrl').value = '';
+            document.getElementById('formIcon').value = 'fa-link';
+            document.getElementById('formBadge').value = '';
+            document.getElementById('formOrder').value = appState.items.length + 1;
+            document.getElementById('formStatus').value = 'Active';
+            updateIconPreview('fa-link');
+            openModal('menuModal');
+        }
+
+        function openEditMenuModal(id) {
+            const item = appState.items.find(i => i.id === id);
+            if (!item) return;
+
+            document.getElementById('modalFormTitle').innerText = 'Edit Data Menu Icon';
+            document.getElementById('formItemId').value = item.id;
+            document.getElementById('formTitle').value = item.title;
+            document.getElementById('formSubtitle').value = item.subtitle;
+            populateCategoryDropdown(item.category);
+            document.getElementById('formUrl').value = item.url;
+            document.getElementById('formIcon').value = item.icon;
+            document.getElementById('formBadge').value = item.badge || '';
+            document.getElementById('formOrder').value = item.order || 1;
+            document.getElementById('formStatus').value = item.status || 'Active';
+            updateIconPreview(item.icon);
+            openModal('menuModal');
+        }
+
+        // OPTIMISTIC UI UPDATE: Save Menu
+        function handleSaveMenu(e) {
+            e.preventDefault();
+            const id = document.getElementById('formItemId').value;
+            const selectedDropdownVal = document.getElementById('formCategorySelect').value;
+            let finalCategory = selectedDropdownVal;
+
+            if (selectedDropdownVal === '__NEW_CATEGORY__') {
+                const customCategory = document.getElementById('formNewCategoryInput').value.trim();
+                if (!customCategory) {
+                    alert('Harap masukkan nama kategori baru!');
+                    return;
+                }
+                finalCategory = customCategory;
+                if (!appState.categories.includes(finalCategory)) {
+                    appState.categories.push(finalCategory);
+                }
             }
 
-            renderLogsTable();
-        };
+            const newItem = {
+                id: id || ('MENU_' + Date.now()),
+                category: finalCategory,
+                title: document.getElementById('formTitle').value,
+                subtitle: document.getElementById('formSubtitle').value,
+                url: document.getElementById('formUrl').value,
+                icon: document.getElementById('formIcon').value,
+                badge: document.getElementById('formBadge').value,
+                order: parseInt(document.getElementById('formOrder').value) || 1,
+                status: document.getElementById('formStatus').value
+            };
 
-        function fetchLiveDataFromGas() {
-            if (!state.config.gasUrl) return;
+            // 1. Instant local UI update (Terasa sangat cepat di browser)
+            if (id) {
+                const idx = appState.items.findIndex(i => i.id === id);
+                if (idx !== -1) appState.items[idx] = newItem;
+            } else {
+                appState.items.push(newItem);
+            }
+            closeModal('menuModal');
+            refreshUI();
 
-            const targetUrl = `${state.config.gasUrl}?action=getPortalData&role=${state.currentRole}&username=${encodeURIComponent(state.username)}`;
+            // 2. Background sync ke Google Sheets
+            if (typeof google !== 'undefined' && google.script && google.script.run) {
+                showSyncing(true);
+                google.script.run
+                    .withSuccessHandler((res) => {
+                        showSyncing(false);
+                        if (!res.success) alert(res.message);
+                    })
+                    .withFailureHandler((err) => {
+                        showSyncing(false);
+                        alert("Gagal sinkronisasi ke server: " + err);
+                    })
+                    .saveMenuItem(appState.adminPinToken, newItem);
+            }
+        }
 
-            fetch(targetUrl)
-                .then(res => res.json())
-                .then(res => {
-                    if (res.success && Array.isArray(res.data)) {
-                        state.menus = res.data;
-                        renderAll();
-                    } else {
-                        alert('Respon GAS API gagal: ' + (res.message || 'Format tidak valid'));
-                    }
-                })
-                .catch(err => {
-                    console.error("GAS API Error:", err);
-                    alert('Gagal terhubung ke GAS API. Memakai data simulasi lokal. Error: ' + err.toString());
+        function openCategoryManagerModal() {
+            renderCategoryManagerList();
+            openModal('categoryManagerModal');
+        }
+
+        function renderCategoryManagerList() {
+            syncCategoryList();
+            const container = document.getElementById('categoryManagerList');
+            if (appState.categories.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-3">Belum ada kategori.</p>`;
+                return;
+            }
+
+            container.innerHTML = appState.categories.map(cat => {
+                const count = appState.items.filter(i => i.category === cat).length;
+                return `
+                    <div class="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg group">
+                        <div>
+                            <span class="text-xs font-semibold text-slate-800">${cat}</span>
+                            <span class="text-[10px] text-slate-400 ml-1.5">(${count} menu)</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button onclick="handleRenameCategoryPrompt('${cat}')" title="Ubah Nama" class="p-1 text-slate-400 hover:text-indigo-600 rounded">
+                                <i class="fa-solid fa-pen text-xs"></i>
+                            </button>
+                            <button onclick="handleDeleteCategory('${cat}')" title="Hapus Kategori" class="p-1 text-slate-400 hover:text-red-600 rounded">
+                                <i class="fa-solid fa-trash-can text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function handleAddQuickCategory() {
+            const input = document.getElementById('quickCategoryInput');
+            const val = input.value.trim();
+            if (!val) return;
+
+            if (!appState.categories.includes(val)) {
+                appState.categories.push(val);
+                input.value = '';
+                renderCategoryManagerList();
+                renderCategoryPills();
+            } else {
+                alert('Kategori tersebut sudah ada!');
+            }
+        }
+
+        // OPTIMISTIC UI UPDATE: Rename Category
+        function handleRenameCategoryPrompt(oldName) {
+            const newName = prompt(`Ubah nama kategori "${oldName}" menjadi:`, oldName);
+            if (!newName || newName.trim() === '' || newName === oldName) return;
+
+            const trimmedNew = newName.trim();
+
+            // 1. Instant local update
+            appState.items.forEach(item => {
+                if (item.category === oldName) item.category = trimmedNew;
+            });
+            const idx = appState.categories.indexOf(oldName);
+            if (idx !== -1) appState.categories[idx] = trimmedNew;
+            if (appState.selectedCategory === oldName) appState.selectedCategory = trimmedNew;
+
+            renderCategoryManagerList();
+            refreshUI();
+
+            // 2. Background sync ke Google Sheets
+            if (typeof google !== 'undefined' && google.script && google.script.run) {
+                showSyncing(true);
+                google.script.run
+                    .withSuccessHandler((res) => {
+                        showSyncing(false);
+                        if (!res.success) alert(res.message);
+                    })
+                    .withFailureHandler((err) => {
+                        showSyncing(false);
+                        alert("Gagal sinkronisasi nama kategori ke server.");
+                    })
+                    .renameCategory(appState.adminPinToken, oldName, trimmedNew);
+            }
+        }
+
+        function handleDeleteCategory(cat) {
+            const count = appState.items.filter(i => i.category === cat).length;
+            if (count > 0) {
+                if (!confirm(`Kategori "${cat}" digunakan oleh ${count} menu. Yakin ingin menghapus kategori ini? (Menu terkait akan dipindah ke kategori 'Umum')`)) {
+                    return;
+                }
+                appState.items.forEach(i => {
+                    if (i.category === cat) i.category = 'Umum';
                 });
+                if (!appState.categories.includes('Umum')) appState.categories.push('Umum');
+            }
+
+            appState.categories = appState.categories.filter(c => c !== cat);
+            if (appState.selectedCategory === cat) appState.selectedCategory = 'ALL';
+
+            renderCategoryManagerList();
+            refreshUI();
+        }
+
+        // OPTIMISTIC UI UPDATE: Delete Menu
+        function confirmDeleteMenu(id) {
+            if (confirm('Apakah Anda yakin ingin menghapus menu ini?')) {
+                // 1. Instant local update
+                appState.items = appState.items.filter(i => i.id !== id);
+                refreshUI();
+
+                // 2. Background sync ke Google Sheets
+                if (typeof google !== 'undefined' && google.script && google.script.run) {
+                    showSyncing(true);
+                    google.script.run
+                        .withSuccessHandler((res) => {
+                            showSyncing(false);
+                            if (!res.success) alert(res.message);
+                        })
+                        .withFailureHandler((err) => {
+                            showSyncing(false);
+                            alert("Gagal menghapus dari server.");
+                        })
+                        .deleteMenuItem(appState.adminPinToken, id);
+                }
+            }
         }
     </script>
 </body>
