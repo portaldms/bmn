@@ -1,45 +1,948 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>portal.data</title>
-  <link rel="icon" type="image/png" href="./altencrypto.png">
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      height: 100%;
-      background-color: #eee;
-      overflow: hidden; /* Mencegah scroll ganda */
-    }
+<!-- Container Utama Full Screen Isolation -->
+<div id="blog-app-portal" class="dark fixed inset-0 z-[99999] w-screen h-screen overflow-y-auto bg-softDark-bg text-softDark-text font-sans transition-colors duration-300">
 
-    .iframe-container {
-      width: 100%;
-      height: 100dvh; /* Menggunakan dvh agar pas di mobile browser */
-      overflow: hidden;
-    }
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        softLight: {
+                            bg: '#f8fafc',
+                            card: '#ffffff',
+                            header: '#f1f5f9',
+                            border: '#e2e8f0',
+                            text: '#0f172a',
+                            subtext: '#64748b'
+                        },
+                        softDark: {
+                            bg: '#0f172a',        /* Soft Dark Slate Background */
+                            card: '#1e293b',      /* Soft Card Background */
+                            header: '#182232',    /* Soft Header Background */
+                            border: '#334155',    /* Border Soft Slate */
+                            text: '#f1f5f9',      /* Text Bright Soft */
+                            subtext: '#94a3b8'    /* Muted Soft Subtext */
+                        }
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
 
-    iframe {
-      display: block;
-      width: 100%;
-      height: 100%;
-      border: none;
-    }
-  </style>
-</head>
-<body>
-  <div class="iframe-container">
-    <iframe
-      id="app"
-      src="https://script.google.com/macros/s/AKfycbxfLZFr72Q6jhwmR0Jl5yMYqJp51yHLtsRTMtBSPY4WP5XB7lrbcuJfNzJSRPDCbRF6ag/exec"
-      scrolling="yes"
-      allowfullscreen="true"
-      webkitallowfullscreen="true"
-      mozallowfullscreen="true"
-      allow="fullscreen; camera; microphone; display-capture; geolocation;">
-    </iframe>
-  </div>
-</body>
-</html>
+    <style>
+        .glass-card {
+            background: rgba(30, 41, 59, 0.85);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(51, 65, 85, 0.7);
+        }
+        .scrollbar-thin::-webkit-scrollbar { height: 6px; width: 6px; }
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+            background-color: rgba(51, 65, 85, 0.8);
+            border-radius: 9999px;
+        }
+    </style>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center transition-opacity duration-200 hidden">
+        <div class="bg-softDark-card p-5 rounded-2xl shadow-2xl flex items-center space-x-3 border border-softDark-border">
+            <i class="fa-solid fa-circle-notch fa-spin text-teal-400 text-2xl"></i>
+            <span class="text-xs font-semibold text-softDark-text">Memproses Data...</span>
+        </div>
+    </div>
+
+    <!-- Background Sync Indicator -->
+    <div id="syncIndicator" class="fixed bottom-4 left-4 z-40 bg-softDark-card/90 border border-softDark-border px-3 py-1.5 rounded-full shadow-lg flex items-center space-x-2 text-[11px] text-teal-400 transition-all duration-300 opacity-0 pointer-events-none">
+        <i class="fa-solid fa-arrows-rotate fa-spin"></i>
+        <span>Menyinkronkan data...</span>
+    </div>
+
+    <!-- Notification Toast Container -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+    <!-- Header Navigation -->
+    <header class="sticky top-0 z-30 bg-softDark-header/90 backdrop-blur-md border-b border-softDark-border shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="switchView('portal')">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-500 to-cyan-600 flex items-center justify-center text-white shadow-lg shadow-teal-500/20">
+                    <i class="fa-solid fa-folder-tree text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-base sm:text-lg leading-tight text-softDark-text tracking-wide">Portal Data Hub</h1>
+                    <p class="text-xs text-softDark-subtext hidden sm:block">@alten2025</p>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-2 sm:space-x-3">
+                <nav class="flex bg-softDark-bg/80 p-1 rounded-xl border border-softDark-border">
+                    <button id="tabPortalBtn" onclick="switchView('portal')" class="px-3 sm:px-4 py-1.5 text-xs font-semibold rounded-lg bg-softDark-card text-teal-400 shadow-xs transition">
+                        <i class="fa-solid fa-compass sm:mr-1.5"></i><span class="hidden sm:inline">Portal Tautan</span>
+                    </button>
+                    <button id="tabAdminBtn" onclick="handleAdminTabClick()" class="px-3 sm:px-4 py-1.5 text-xs font-semibold rounded-lg text-softDark-subtext hover:text-white transition">
+                        <i class="fa-solid fa-sliders sm:mr-1.5"></i><span class="hidden sm:inline">Kelola Data (Admin)</span>
+                    </button>
+                </nav>
+
+                <button onclick="toggleDarkMode()" class="p-2 rounded-xl bg-softDark-card border border-softDark-border text-softDark-subtext hover:text-teal-400 transition" title="Ganti Mode Gelap/Terang">
+                    <i id="themeIcon" class="fa-solid fa-moon text-sm"></i>
+                </button>
+
+                <div id="userBadge" class="hidden sm:flex items-center bg-softDark-card/80 px-3 py-1.5 rounded-lg border border-softDark-border">
+                    <span id="roleDot" class="w-2 h-2 rounded-full bg-slate-500 mr-2"></span>
+                    <span id="roleText" class="text-xs font-medium text-softDark-subtext">Tamu</span>
+                </div>
+
+                <button id="authBtn" onclick="toggleAuthAction()" class="px-3.5 py-1.5 text-xs font-semibold text-white bg-teal-600 hover:bg-teal-500 rounded-xl shadow-md shadow-teal-600/20 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-right-to-bracket"></i> Login
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
+
+        <!-- VIEW 1: PORTAL TAUTAN & DASHBOARD HERO -->
+        <section id="portalView" class="space-y-6">
+            <div class="glass-card rounded-2xl p-6 sm:p-8 relative overflow-hidden shadow-xl">
+                <div class="relative z-10 max-w-2xl">
+                    <span class="px-3 py-1 rounded-full text-xs font-semibold bg-teal-950/80 text-teal-300 border border-teal-800/60 mb-3 inline-block">
+                        <i class="fa-solid fa-bolt mr-1 text-teal-400"></i> Centralized Link & Sub-Menu Hub
+                    </span>
+                    <h2 class="text-2xl sm:text-3xl font-extrabold text-softDark-text tracking-tight">
+                        Cari & Temukan Data Tautan Lebih Cepat
+                    </h2>
+                    <p class="mt-2 text-sm text-softDark-subtext">
+                        Akses seluruh data, direktori dokumen, dan file internal berdasarkan Kategori dan Sub-Menu Data.
+                    </p>
+
+                    <div class="mt-6 relative">
+                        <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-softDark-subtext text-sm"></i>
+                        <input type="text" id="searchInput" oninput="renderLinks()" placeholder="Cari nama menu, sub menu, dokumen, atau kata kunci..." 
+                               class="w-full pl-11 pr-4 py-3 rounded-xl border border-softDark-border bg-softDark-card/90 text-softDark-text shadow-inner focus:ring-2 focus:ring-teal-500/50 text-sm focus:outline-none transition placeholder:text-slate-500">
+                    </div>
+                </div>
+            </div>
+
+            <!-- LOCK SCREEN CONTAINER (DAPAT DIBUKA JIKA SUDAH LOGIN) -->
+            <div id="menuLockedBanner" class="bg-amber-950/40 border border-amber-800/60 p-8 rounded-2xl text-center space-y-4">
+                <div class="w-14 h-14 bg-amber-900/60 text-amber-400 rounded-full flex items-center justify-center mx-auto border border-amber-700/50 shadow-lg">
+                    <i class="fa-solid fa-lock text-2xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-amber-200">Menu & Direktori Tautan Terkunci</h3>
+                    <p class="text-xs text-amber-300/80 max-w-md mx-auto mt-1">
+                        Silakan login terlebih dahulu untuk mengakses menu data, kategori, sub-menu, dan hyperlink internal.
+                    </p>
+                </div>
+                <button onclick="openLoginModal()" class="px-5 py-2.5 bg-teal-600 hover:bg-teal-500 text-white font-semibold text-xs rounded-xl shadow-lg transition inline-flex items-center gap-2">
+                    <i class="fa-solid fa-right-to-bracket"></i> Login Sekarang untuk Akses Menu
+                </button>
+            </div>
+
+            <!-- CONTENT CONTAINER (HANYA MUNCUL JIKA USER TELAH LOGIN) -->
+            <div id="menuContentWrapper" class="hidden space-y-6">
+                <!-- Filter Kategori Utama -->
+                <div class="space-y-2">
+                    <div class="text-xs font-bold uppercase tracking-wider text-softDark-subtext flex items-center gap-1.5">
+                        <i class="fa-solid fa-layer-group text-teal-400"></i> Kategori Utama
+                    </div>
+                    <div id="categoryPills" class="flex items-center space-x-2 overflow-x-auto pb-2 scrollbar-thin"></div>
+                </div>
+
+                <!-- Filter Sub-Menu Data -->
+                <div id="subMenuContainer" class="space-y-2">
+                    <div class="text-xs font-bold uppercase tracking-wider text-softDark-subtext flex items-center gap-1.5">
+                        <i class="fa-solid fa-diagram-subgroup text-cyan-400"></i> Sub-Menu Data
+                    </div>
+                    <div id="subMenuPills" class="flex items-center space-x-2 overflow-x-auto pb-2 scrollbar-thin"></div>
+                </div>
+
+                <!-- Links Cards Grid -->
+                <div id="linksGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+
+                <!-- Empty State -->
+                <div id="emptyPortalState" class="hidden text-center py-12 bg-softDark-card/80 rounded-2xl border border-dashed border-softDark-border">
+                    <i class="fa-solid fa-folder-open text-3xl text-softDark-subtext mb-2"></i>
+                    <h3 class="text-sm font-semibold text-softDark-text">Tautan atau Sub-Menu Tidak Ditemukan</h3>
+                    <p class="text-xs text-softDark-subtext mt-1">Coba gunakan kata kunci lain atau pilih kategori yang berbeda.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW 2: ADMIN MANAGEMENT DASHBOARD & TABLE -->
+        <section id="adminView" class="hidden space-y-6">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-softDark-card p-6 rounded-2xl border border-softDark-border shadow-lg">
+                <div>
+                    <h2 class="text-xl font-bold text-softDark-text flex items-center gap-2">
+                        <i class="fa-solid fa-user-gear text-teal-400"></i> Panel Manajemen Super Admin
+                    </h2>
+                    <p class="text-xs text-softDark-subtext mt-1">Kelola direktori kategori, sub-menu data, dan tautan aplikasi.</p>
+                </div>
+                <div class="flex items-center space-x-2 w-full sm:w-auto">
+                    <button onclick="openCategoryModal()" class="flex-1 sm:flex-none px-4 py-2 bg-softDark-bg text-softDark-text font-semibold text-xs rounded-xl border border-softDark-border hover:bg-slate-800 transition">
+                        <i class="fa-solid fa-folder-plus mr-1 text-teal-400"></i> Kelola Kategori
+                    </button>
+                    <button onclick="openLinkModal()" class="flex-1 sm:flex-none px-4 py-2 bg-teal-600 text-white font-semibold text-xs rounded-xl hover:bg-teal-500 transition shadow-md shadow-teal-600/20">
+                        <i class="fa-solid fa-plus mr-1"></i> Tambah Tautan
+                    </button>
+                </div>
+            </div>
+
+            <!-- TABEL DATA LINK -->
+            <div class="bg-softDark-card rounded-2xl border border-softDark-border overflow-hidden shadow-lg">
+                <div class="p-4 border-b border-softDark-border flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center">
+                    <div class="flex items-center space-x-2">
+                        <h3 class="font-semibold text-sm text-softDark-text flex items-center gap-2">
+                            <i class="fa-solid fa-table text-teal-400"></i> Tabel Master Hyperlink & Sub-Menu
+                        </h3>
+                        <span id="totalLinkBadge" class="px-2.5 py-0.5 text-xs font-semibold bg-softDark-bg text-softDark-subtext rounded-full border border-softDark-border">
+                            0 Data
+                        </span>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                        <div class="relative flex-1 sm:w-64">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-softDark-subtext text-xs"></i>
+                            <input type="text" id="adminSearchInput" oninput="renderAdminTable()" placeholder="Cari judul, sub menu, URL..." 
+                                   class="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl border border-softDark-border bg-softDark-bg text-softDark-text focus:ring-2 focus:ring-teal-500/50 focus:outline-none">
+                        </div>
+                        <select id="adminCategoryFilter" onchange="renderAdminTable()" class="px-3 py-1.5 text-xs border border-softDark-border rounded-xl bg-softDark-bg text-softDark-text focus:ring-2 focus:ring-teal-500/50 focus:outline-none">
+                            <option value="ALL">Semua Kategori</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-softDark-bg/80 text-softDark-subtext text-[11px] uppercase font-semibold border-b border-softDark-border">
+                                <th class="p-4">Judul Dokumen / Aplikasi</th>
+                                <th class="p-4">Kategori</th>
+                                <th class="p-4">Sub-Menu Data</th>
+                                <th class="p-4">Target URL</th>
+                                <th class="p-4">Badge</th>
+                                <th class="p-4 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminTableBody" class="divide-y divide-softDark-border text-xs"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- MODAL: LOGIN SUPER ADMIN -->
+    <div id="loginModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs hidden flex items-center justify-center p-4">
+        <div class="bg-softDark-card rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-softDark-border">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-base font-bold text-softDark-text flex items-center gap-2">
+                    <i class="fa-solid fa-lock text-teal-400"></i> Login Autentikasi User
+                </h3>
+                <button onclick="closeLoginModal()" class="text-softDark-subtext hover:text-white">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            
+            <form onsubmit="handleLoginSubmit(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-softDark-text mb-1">Username</label>
+                    <input type="text" id="loginUsername" placeholder="Default: admin" required class="w-full px-3 py-2 text-xs border border-softDark-border rounded-xl bg-softDark-bg text-softDark-text focus:ring-2 focus:ring-teal-500/50 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-softDark-text mb-1">Password</label>
+                    <input type="password" id="loginPassword" placeholder="Default: admin123" required class="w-full px-3 py-2 text-xs border border-softDark-border rounded-xl bg-softDark-bg text-softDark-text focus:ring-2 focus:ring-teal-500/50 focus:outline-none">
+                </div>
+                <div id="loginError" class="hidden text-xs text-rose-400 font-medium bg-rose-950/40 p-2.5 rounded-lg border border-rose-900"></div>
+                <button type="submit" class="w-full py-2.5 text-xs font-semibold text-white bg-teal-600 hover:bg-teal-500 rounded-xl shadow-md transition">Masuk & Buka Akses Menu</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: FORM LINK -->
+    <div id="linkModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs hidden flex items-center justify-center p-4">
+        <div class="bg-softDark-card rounded-2xl max-w-md w-full p-6 shadow-2xl border border-softDark-border">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="modalLinkTitle" class="text-base font-bold text-softDark-text">Tambah Hyperlink Baru</h3>
+                <button onclick="closeLinkModal()" class="text-softDark-subtext hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            
+            <form id="linkForm" onsubmit="handleSaveLink(event)" class="space-y-4">
+                <input type="hidden" id="formLinkId">
+                <div>
+                    <label class="block text-xs font-semibold text-softDark-text mb-1">Judul Dokumen / Aplikasi *</label>
+                    <input type="text" id="formTitle" required placeholder="Contoh: Form Pengajuan Cuti" class="w-full px-3 py-2 text-xs border border-softDark-border rounded-xl bg-softDark-bg text-softDark-text focus:ring-2 focus:ring-teal-500/50 focus:outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-softDark-text mb-1">Kategori Utama *</label>
+                        <select id="formCategory" required class="w-full px-3 py-2 text-xs border border-softDark-border rounded-xl bg-softDark-bg text-softDark-text focus:ring-2 focus:ring-teal-500/50 focus:outline-none"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-softDark-text mb-1">Sub-Menu Data *</label>
+                        <input type="text" id="formSubMenu" placeholder="Contoh: Formulir, SOP, Laporan" required class="w-full px-3 py-2 text-xs border border-softDark-border rounded-xl bg-softDark-bg text-softDark-text focus:ring-2 focus:ring-teal-500/50 focus:outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-softDark-text mb-1">URL Hyperlink *</label>
+                    <input type="url" id="formUrl" required placeholder="https://..." class="w-full px-3 py-2 text-xs border border-softDark-border rounded-xl bg-softDark-bg text-softDark-text focus:ring-2 focus:ring-teal-500/50 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-softDark-text mb-1">Deskripsi Singkat</label>
+                    <textarea id="formDescription" rows="2" placeholder="Jelaskan ringkasan isi dokumen atau panduan..." class="w-full px-3 py-2 text-xs border border-softDark-border rounded-xl bg-softDark-bg text-softDark-text focus:ring-2 focus:ring-teal-500/50 focus:outline-none"></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-softDark-text mb-1">Badge Label (Opsional)</label>
+                    <input type="text" id="formBadge" placeholder="Misal: Utama, Baru, Wajib" class="w-full px-3 py-2 text-xs border border-softDark-border rounded-xl bg-softDark-bg text-softDark-text focus:ring-2 focus:ring-teal-500/50 focus:outline-none">
+                </div>
+                <div class="flex justify-end space-x-2 pt-3 border-t border-softDark-border">
+                    <button type="button" onclick="closeLinkModal()" class="px-4 py-2 text-xs text-softDark-subtext hover:text-white transition">Batal</button>
+                    <button type="submit" class="px-4 py-2 text-xs font-semibold text-white bg-teal-600 rounded-xl hover:bg-teal-500 transition shadow-md">Simpan Tautan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: KELOLA KATEGORI -->
+    <div id="categoryModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs hidden flex items-center justify-center p-4">
+        <div class="bg-softDark-card rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-softDark-border space-y-4">
+            <div class="flex justify-between items-center border-b border-softDark-border pb-3">
+                <h3 class="text-base font-bold text-softDark-text flex items-center gap-2">
+                    <i class="fa-solid fa-folder-tree text-teal-400"></i> Kelola Kategori Utama
+                </h3>
+                <button onclick="closeCategoryModal()" class="text-softDark-subtext hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            
+            <form onsubmit="handleAddCategory(event)" class="space-y-3 bg-softDark-bg/60 p-3.5 rounded-xl border border-softDark-border">
+                <span class="text-xs font-bold text-softDark-text flex items-center gap-1.5">
+                    <i class="fa-solid fa-plus text-teal-400"></i> Tambah Kategori Baru
+                </span>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <input type="text" id="newCatName" required placeholder="Nama Kategori..." class="w-full px-3 py-1.5 text-xs border border-softDark-border rounded-lg bg-softDark-card text-softDark-text focus:ring-2 focus:ring-teal-500/50 focus:outline-none">
+                    <input type="text" id="newCatDesc" placeholder="Deskripsi Singkat..." class="w-full px-3 py-1.5 text-xs border border-softDark-border rounded-lg bg-softDark-card text-softDark-text focus:ring-2 focus:ring-teal-500/50 focus:outline-none">
+                </div>
+                <button type="submit" class="w-full py-2 text-xs font-semibold bg-teal-600 hover:bg-teal-500 text-white rounded-lg transition shadow-xs">Simpan Kategori Baru</button>
+            </form>
+
+            <div class="space-y-2 max-h-56 overflow-y-auto scrollbar-thin pr-1">
+                <span class="text-xs font-bold uppercase tracking-wider text-softDark-subtext">Daftar Kategori Terdaftar</span>
+                <div id="categoryListContainer" class="space-y-2"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: KONFIRMASI HAPUS -->
+    <div id="deleteConfirmModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs hidden flex items-center justify-center p-4">
+        <div class="bg-softDark-card rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-softDark-border space-y-4">
+            <div class="text-center">
+                <div class="w-12 h-12 bg-rose-950/60 text-rose-400 border border-rose-800 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i class="fa-solid fa-triangle-exclamation text-xl"></i>
+                </div>
+                <h3 class="text-base font-bold text-softDark-text">Hapus Tautan?</h3>
+                <p class="text-xs text-softDark-subtext mt-1">Tautan ini akan dihapus secara permanen dari database Google Sheets.</p>
+            </div>
+            <div class="flex justify-center space-x-3 pt-2">
+                <button onclick="closeDeleteModal()" class="px-4 py-2 text-xs font-medium text-softDark-subtext hover:text-white transition">Batal</button>
+                <button id="confirmDeleteBtn" onclick="executeDeleteLink()" class="px-4 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-500 rounded-xl transition shadow-md">Hapus Permanen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC ENGINE -->
+    <script>
+        const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzdM8Vj6_l3NurGEuJt0aFTg3AKSLAtABAlpJxroxSgdp-Ju0lKLu1DxM-XcZKJNocOxA/exec";
+        const LOCAL_STORAGE_CACHE_KEY = 'portal_app_data_cache_v2';
+        const AUTH_STORAGE_KEY = 'portal_app_user_session';
+
+        let state = {
+            categories: [],
+            links: [],
+            activeCategory: 'ALL',
+            activeSubMenu: 'ALL',
+            currentView: 'portal',
+            currentUser: null,
+            deleteTargetId: null
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            checkStoredAuth();
+            loadCachedDataOrFetch();
+        });
+
+        function showLoading(show) {
+            document.getElementById('loadingOverlay').classList.toggle('hidden', !show);
+        }
+
+        function showSyncing(show) {
+            const ind = document.getElementById('syncIndicator');
+            if (show) {
+                ind.classList.remove('opacity-0');
+            } else {
+                ind.classList.add('opacity-0');
+            }
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            const bgClass = type === 'success' ? 'bg-teal-900/90 border-teal-700 text-teal-200' : 'bg-rose-900/90 border-rose-700 text-rose-200';
+            const icon = type === 'success' ? 'fa-circle-check' : 'fa-circle-xmark';
+            
+            toast.className = `px-4 py-3 rounded-xl border ${bgClass} backdrop-blur-md shadow-2xl flex items-center space-x-2.5 text-xs font-semibold transition-all duration-300 pointer-events-auto transform translate-y-2 opacity-0`;
+            toast.innerHTML = `<i class="fa-solid ${icon} text-sm"></i><span>${message}</span>`;
+            
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        function checkStoredAuth() {
+            try {
+                const session = localStorage.getItem(AUTH_STORAGE_KEY);
+                if (session) {
+                    state.currentUser = JSON.parse(session);
+                }
+            } catch(e) {}
+            updateAuthUI();
+        }
+
+        function updateAuthUI() {
+            const roleDot = document.getElementById('roleDot');
+            const roleText = document.getElementById('roleText');
+            const authBtn = document.getElementById('authBtn');
+            const menuLockedBanner = document.getElementById('menuLockedBanner');
+            const menuContentWrapper = document.getElementById('menuContentWrapper');
+
+            if (state.currentUser) {
+                roleDot.className = 'w-2 h-2 rounded-full bg-teal-400 mr-2 shadow-xs shadow-teal-400';
+                roleText.innerText = state.currentUser.role || 'Pengguna Login';
+                roleText.className = 'text-xs font-semibold text-teal-300';
+                
+                authBtn.innerHTML = '<i class="fa-solid fa-right-from-bracket"></i> Logout';
+                authBtn.className = 'px-3.5 py-1.5 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-500 rounded-xl shadow-md transition flex items-center gap-1.5';
+                
+                // UNLOCK MENU LOGIC
+                menuLockedBanner.classList.add('hidden');
+                menuContentWrapper.classList.remove('hidden');
+                
+                renderPortalView();
+                renderAdminTable();
+            } else {
+                roleDot.className = 'w-2 h-2 rounded-full bg-slate-500 mr-2';
+                roleText.innerText = 'Tamu (Belum Login)';
+                roleText.className = 'text-xs font-medium text-softDark-subtext';
+                
+                authBtn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Login';
+                authBtn.className = 'px-3.5 py-1.5 text-xs font-semibold text-white bg-teal-600 hover:bg-teal-500 rounded-xl shadow-md shadow-teal-600/20 transition flex items-center gap-1.5';
+                
+                // LOCK MENU LOGIC
+                menuLockedBanner.classList.remove('hidden');
+                menuContentWrapper.classList.add('hidden');
+
+                if (state.currentView === 'admin') {
+                    switchView('portal');
+                }
+            }
+        }
+
+        function toggleAuthAction() {
+            if (state.currentUser) {
+                localStorage.removeItem(AUTH_STORAGE_KEY);
+                state.currentUser = null;
+                showToast('Berhasil logout dari sistem');
+                updateAuthUI();
+            } else {
+                openLoginModal();
+            }
+        }
+
+        async function loadCachedDataOrFetch() {
+            const cached = localStorage.getItem(LOCAL_STORAGE_CACHE_KEY);
+            if (cached) {
+                try {
+                    const data = JSON.parse(cached);
+                    state.categories = data.categories || [];
+                    state.links = data.links || [];
+                    if (state.currentUser) renderPortalView();
+                } catch(e) {}
+            }
+            await fetchPortalData();
+        }
+
+        async function fetchPortalData() {
+            showSyncing(true);
+            try {
+                const response = await fetch(`${GAS_WEB_APP_URL}?action=getPortalData`);
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    state.categories = result.categories || [];
+                    state.links = result.links || [];
+                    localStorage.setItem(LOCAL_STORAGE_CACHE_KEY, JSON.stringify(result));
+                    if (state.currentUser) {
+                        renderPortalView();
+                        renderAdminTable();
+                    }
+                }
+            } catch(err) {
+                console.error("Gagal sinkronisasi data:", err);
+            } finally {
+                showSyncing(false);
+            }
+        }
+
+        function switchView(viewName) {
+            state.currentView = viewName;
+            const portalView = document.getElementById('portalView');
+            const adminView = document.getElementById('adminView');
+            const tabPortalBtn = document.getElementById('tabPortalBtn');
+            const tabAdminBtn = document.getElementById('tabAdminBtn');
+
+            if (viewName === 'portal') {
+                portalView.classList.remove('hidden');
+                adminView.classList.add('hidden');
+                tabPortalBtn.className = 'px-3 sm:px-4 py-1.5 text-xs font-semibold rounded-lg bg-softDark-card text-teal-400 shadow-xs transition';
+                tabAdminBtn.className = 'px-3 sm:px-4 py-1.5 text-xs font-semibold rounded-lg text-softDark-subtext hover:text-white transition';
+            } else {
+                if (!state.currentUser) {
+                    openLoginModal();
+                    return;
+                }
+                portalView.classList.add('hidden');
+                adminView.classList.remove('hidden');
+                tabAdminBtn.className = 'px-3 sm:px-4 py-1.5 text-xs font-semibold rounded-lg bg-softDark-card text-teal-400 shadow-xs transition';
+                tabPortalBtn.className = 'px-3 sm:px-4 py-1.5 text-xs font-semibold rounded-lg text-softDark-subtext hover:text-white transition';
+                renderAdminTable();
+            }
+        }
+
+        function handleAdminTabClick() {
+            if (!state.currentUser) {
+                showToast('Silakan login terlebih dahulu untuk mengakses menu Admin', 'error');
+                openLoginModal();
+                return;
+            }
+            switchView('admin');
+        }
+
+        function renderPortalView() {
+            if (!state.currentUser) return;
+            renderCategoryPills();
+            renderSubMenuPills();
+            renderLinks();
+        }
+
+        function renderCategoryPills() {
+            const container = document.getElementById('categoryPills');
+            let html = `
+                <button onclick="selectCategory('ALL')" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition ${state.activeCategory === 'ALL' ? 'bg-teal-600 text-white shadow-md' : 'bg-softDark-card text-softDark-subtext hover:text-white border border-softDark-border'}">
+                    <i class="fa-solid fa-border-all mr-1.5"></i>Semua Kategori
+                </button>
+            `;
+
+            state.categories.forEach(cat => {
+                const isActive = state.activeCategory === cat.Category_ID;
+                const icon = cat.Icon || 'fa-folder';
+                html += `
+                    <button onclick="selectCategory('${cat.Category_ID}')" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition ${isActive ? 'bg-teal-600 text-white shadow-md' : 'bg-softDark-card text-softDark-subtext hover:text-white border border-softDark-border'}">
+                        <i class="fa-solid ${icon} mr-1.5"></i>${cat.Category_Name}
+                    </button>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function selectCategory(catId) {
+            state.activeCategory = catId;
+            state.activeSubMenu = 'ALL';
+            renderPortalView();
+        }
+
+        function renderSubMenuPills() {
+            const container = document.getElementById('subMenuPills');
+            let filteredLinks = state.links;
+
+            if (state.activeCategory !== 'ALL') {
+                filteredLinks = filteredLinks.filter(l => String(l.Category_ID) === String(state.activeCategory));
+            }
+
+            const subMenus = [...new Set(filteredLinks.map(l => l.Sub_Menu || 'Umum'))];
+
+            let html = `
+                <button onclick="selectSubMenu('ALL')" class="px-3 py-1 rounded-lg text-xs font-medium whitespace-nowrap transition ${state.activeSubMenu === 'ALL' ? 'bg-cyan-600 text-white' : 'bg-softDark-bg text-softDark-subtext border border-softDark-border hover:text-white'}">
+                    Semua Sub-Menu
+                </button>
+            `;
+
+            subMenus.forEach(sub => {
+                const isActive = state.activeSubMenu === sub;
+                html += `
+                    <button onclick="selectSubMenu('${sub}')" class="px-3 py-1 rounded-lg text-xs font-medium whitespace-nowrap transition ${isActive ? 'bg-cyan-600 text-white' : 'bg-softDark-bg text-softDark-subtext border border-softDark-border hover:text-white'}">
+                        ${sub}
+                    </button>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function selectSubMenu(subName) {
+            state.activeSubMenu = subName;
+            renderCategoryPills();
+            renderSubMenuPills();
+            renderLinks();
+        }
+
+        function renderLinks() {
+            const grid = document.getElementById('linksGrid');
+            const emptyState = document.getElementById('emptyPortalState');
+            const searchKeyword = (document.getElementById('searchInput').value || '').toLowerCase().trim();
+
+            let list = state.links;
+
+            if (state.activeCategory !== 'ALL') {
+                list = list.filter(l => String(l.Category_ID) === String(state.activeCategory));
+            }
+
+            if (state.activeSubMenu !== 'ALL') {
+                list = list.filter(l => (l.Sub_Menu || 'Umum') === state.activeSubMenu);
+            }
+
+            if (searchKeyword !== '') {
+                list = list.filter(l => 
+                    (l.Title && l.Title.toLowerCase().includes(searchKeyword)) ||
+                    (l.Sub_Menu && l.Sub_Menu.toLowerCase().includes(searchKeyword)) ||
+                    (l.Description && l.Description.toLowerCase().includes(searchKeyword))
+                );
+            }
+
+            if (list.length === 0) {
+                grid.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+
+            grid.innerHTML = list.map(item => {
+                const badgeHtml = item.Badge ? `<span class="px-2 py-0.5 text-[10px] font-bold uppercase bg-teal-950/80 text-teal-300 border border-teal-800 rounded-md">${item.Badge}</span>` : '';
+                return `
+                    <div class="bg-softDark-card rounded-2xl p-5 border border-softDark-border hover:border-teal-500/50 transition duration-300 flex flex-col justify-between space-y-4 shadow-md group">
+                        <div class="space-y-2">
+                            <div class="flex items-start justify-between gap-2">
+                                <span class="px-2 py-0.5 text-[10px] font-semibold bg-slate-800 text-cyan-300 rounded-md border border-slate-700">
+                                    <i class="fa-solid fa-folder-tree mr-1"></i>${item.Sub_Menu || 'Umum'}
+                                </span>
+                                ${badgeHtml}
+                            </div>
+                            <h3 class="font-bold text-sm text-softDark-text group-hover:text-teal-300 transition line-clamp-2">
+                                ${item.Title}
+                            </h3>
+                            <p class="text-xs text-softDark-subtext line-clamp-2">
+                                ${item.Description || 'Tidak ada deskripsi rinci.'}
+                            </p>
+                        </div>
+                        <a href="${item.URL}" target="_blank" rel="noopener noreferrer" 
+                           class="w-full py-2 px-3 text-xs font-semibold text-center rounded-xl bg-softDark-bg hover:bg-teal-600 text-softDark-text hover:text-white border border-softDark-border hover:border-teal-500 transition duration-200 flex items-center justify-center gap-2">
+                            <span>Buka Hyperlink / Dokumen</span>
+                            <i class="fa-solid fa-arrow-up-right-from-square text-[11px]"></i>
+                        </a>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderAdminTable() {
+            if (!state.currentUser) return;
+            const tbody = document.getElementById('adminTableBody');
+            const filterCat = document.getElementById('adminCategoryFilter').value;
+            const searchKw = (document.getElementById('adminSearchInput').value || '').toLowerCase().trim();
+            const totalBadge = document.getElementById('totalLinkBadge');
+
+            const adminCatSelect = document.getElementById('adminCategoryFilter');
+            let catOptions = '<option value="ALL">Semua Kategori</option>';
+            state.categories.forEach(c => {
+                catOptions += `<option value="${c.Category_ID}">${c.Category_Name}</option>`;
+            });
+            adminCatSelect.innerHTML = catOptions;
+            adminCatSelect.value = filterCat;
+
+            let list = state.links;
+            if (filterCat !== 'ALL') {
+                list = list.filter(l => String(l.Category_ID) === String(filterCat));
+            }
+            if (searchKw !== '') {
+                list = list.filter(l => 
+                    (l.Title && l.Title.toLowerCase().includes(searchKw)) ||
+                    (l.Sub_Menu && l.Sub_Menu.toLowerCase().includes(searchKw)) ||
+                    (l.URL && l.URL.toLowerCase().includes(searchKw))
+                );
+            }
+
+            totalBadge.innerText = `${list.length} Data`;
+
+            if (list.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-softDark-subtext">Belum ada data tautan.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = list.map(item => {
+                const catObj = state.categories.find(c => String(c.Category_ID) === String(item.Category_ID));
+                const catName = catObj ? catObj.Category_Name : item.Category_ID;
+
+                return `
+                    <tr class="hover:bg-slate-800/50 transition border-b border-softDark-border/50">
+                        <td class="p-4 font-semibold text-softDark-text">${item.Title}</td>
+                        <td class="p-4 text-softDark-subtext">${catName}</td>
+                        <td class="p-4"><span class="px-2 py-0.5 rounded bg-slate-800 text-cyan-300 border border-slate-700">${item.Sub_Menu || 'Umum'}</span></td>
+                        <td class="p-4 max-w-xs truncate text-teal-400"><a href="${item.URL}" target="_blank" class="hover:underline">${item.URL}</a></td>
+                        <td class="p-4 text-softDark-subtext">${item.Badge || '-'}</td>
+                        <td class="p-4 text-center">
+                            <div class="flex items-center justify-center space-x-2">
+                                <button onclick="openLinkModal('${item.Link_ID}')" class="p-1.5 rounded-lg bg-softDark-bg hover:bg-amber-600/20 text-amber-400 border border-softDark-border transition" title="Edit">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </button>
+                                <button onclick="openDeleteModal('${item.Link_ID}')" class="p-1.5 rounded-lg bg-softDark-bg hover:bg-rose-600/20 text-rose-400 border border-softDark-border transition" title="Hapus">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function openLoginModal() {
+            document.getElementById('loginModal').classList.remove('hidden');
+            document.getElementById('loginError').classList.add('hidden');
+        }
+
+        function closeLoginModal() {
+            document.getElementById('loginModal').classList.add('hidden');
+        }
+
+        async function handleLoginSubmit(e) {
+            e.preventDefault();
+            const u = document.getElementById('loginUsername').value;
+            const p = document.getElementById('loginPassword').value;
+            const errDiv = document.getElementById('loginError');
+
+            showLoading(true);
+            try {
+                const res = await fetch(GAS_WEB_APP_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'login', username: u, password: p })
+                });
+                const result = await res.json();
+
+                if (result.status === 'success') {
+                    state.currentUser = result;
+                    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(result));
+                    closeLoginModal();
+                    showToast('Login Berhasil! Seluruh menu telah terbuka.');
+                    updateAuthUI();
+                } else {
+                    errDiv.innerText = result.message || 'Login gagal';
+                    errDiv.classList.remove('hidden');
+                }
+            } catch(err) {
+                errDiv.innerText = 'Terjadi kesalahan jaringan atau koneksi.';
+                errDiv.classList.remove('hidden');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function openLinkModal(linkId = null) {
+            const form = document.getElementById('linkForm');
+            const catSelect = document.getElementById('formCategory');
+            form.reset();
+
+            let catOptions = '';
+            state.categories.forEach(c => {
+                catOptions += `<option value="${c.Category_ID}">${c.Category_Name}</option>`;
+            });
+            catSelect.innerHTML = catOptions;
+
+            if (linkId) {
+                const item = state.links.find(l => String(l.Link_ID) === String(linkId));
+                if (item) {
+                    document.getElementById('modalLinkTitle').innerText = 'Edit Hyperlink';
+                    document.getElementById('formLinkId').value = item.Link_ID;
+                    document.getElementById('formTitle').value = item.Title;
+                    document.getElementById('formCategory').value = item.Category_ID;
+                    document.getElementById('formSubMenu').value = item.Sub_Menu || 'Umum';
+                    document.getElementById('formUrl').value = item.URL;
+                    document.getElementById('formDescription').value = item.Description || '';
+                    document.getElementById('formBadge').value = item.Badge || '';
+                }
+            } else {
+                document.getElementById('modalLinkTitle').innerText = 'Tambah Hyperlink Baru';
+                document.getElementById('formLinkId').value = '';
+            }
+
+            document.getElementById('linkModal').classList.remove('hidden');
+        }
+
+        function closeLinkModal() {
+            document.getElementById('linkModal').classList.add('hidden');
+        }
+
+        async function handleSaveLink(e) {
+            e.preventDefault();
+            const payload = {
+                action: 'saveLink',
+                linkData: {
+                    Link_ID: document.getElementById('formLinkId').value,
+                    Title: document.getElementById('formTitle').value,
+                    Category_ID: document.getElementById('formCategory').value,
+                    Sub_Menu: document.getElementById('formSubMenu').value,
+                    URL: document.getElementById('formUrl').value,
+                    Description: document.getElementById('formDescription').value,
+                    Badge: document.getElementById('formBadge').value
+                }
+            };
+
+            showLoading(true);
+            try {
+                const res = await fetch(GAS_WEB_APP_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                const result = await res.json();
+                if (result.status === 'success') {
+                    showToast('Data tautan berhasil disimpan');
+                    closeLinkModal();
+                    await fetchPortalData();
+                } else {
+                    showToast(result.message || 'Gagal menyimpan data', 'error');
+                }
+            } catch(err) {
+                showToast('Kesalahan koneksi', 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function openCategoryModal() {
+            renderCategoryListInModal();
+            document.getElementById('categoryModal').classList.remove('hidden');
+        }
+
+        function closeCategoryModal() {
+            document.getElementById('categoryModal').classList.add('hidden');
+        }
+
+        function renderCategoryListInModal() {
+            const container = document.getElementById('categoryListContainer');
+            if (state.categories.length === 0) {
+                container.innerHTML = `<p class="text-xs text-softDark-subtext">Belum ada kategori.</p>`;
+                return;
+            }
+            container.innerHTML = state.categories.map(c => `
+                <div class="flex justify-between items-center bg-softDark-card p-2.5 rounded-lg border border-softDark-border text-xs">
+                    <div>
+                        <span class="font-semibold text-softDark-text">${c.Category_Name}</span>
+                        <p class="text-[10px] text-softDark-subtext">${c.Description || 'Tanpa deskripsi'}</p>
+                    </div>
+                    <span class="px-2 py-0.5 rounded bg-slate-800 text-teal-400 text-[10px]">${c.Category_ID}</span>
+                </div>
+            `).join('');
+        }
+
+        async function handleAddCategory(e) {
+            e.preventDefault();
+            const name = document.getElementById('newCatName').value;
+            const desc = document.getElementById('newCatDesc').value;
+
+            showLoading(true);
+            try {
+                const res = await fetch(GAS_WEB_APP_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'saveCategory',
+                        catData: { Category_Name: name, Description: desc }
+                    })
+                });
+                const result = await res.json();
+                if (result.status === 'success') {
+                    showToast('Kategori baru berhasil ditambahkan');
+                    document.getElementById('newCatName').value = '';
+                    document.getElementById('newCatDesc').value = '';
+                    await fetchPortalData();
+                    renderCategoryListInModal();
+                } else {
+                    showToast(result.message || 'Gagal menyimpan kategori', 'error');
+                }
+            } catch(err) {
+                showToast('Gagal memproses kategori', 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function openDeleteModal(linkId) {
+            state.deleteTargetId = linkId;
+            document.getElementById('deleteConfirmModal').classList.remove('hidden');
+        }
+
+        function closeDeleteModal() {
+            state.deleteTargetId = null;
+            document.getElementById('deleteConfirmModal').classList.add('hidden');
+        }
+
+        async function executeDeleteLink() {
+            if (!state.deleteTargetId) return;
+            showLoading(true);
+            try {
+                const res = await fetch(GAS_WEB_APP_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'deleteLink',
+                        linkId: state.deleteTargetId
+                    })
+                });
+                const result = await res.json();
+                if (result.status === 'success') {
+                    showToast('Tautan berhasil dihapus');
+                    closeDeleteModal();
+                    await fetchPortalData();
+                } else {
+                    showToast(result.message || 'Gagal menghapus tautan', 'error');
+                }
+            } catch(err) {
+                showToast('Kesalahan koneksi saat menghapus', 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function toggleDarkMode() {
+            const root = document.getElementById('blog-app-portal');
+            const themeIcon = document.getElementById('themeIcon');
+            if (root.classList.contains('dark')) {
+                root.classList.remove('dark');
+                themeIcon.className = 'fa-solid fa-sun text-sm text-amber-400';
+            } else {
+                root.classList.add('dark');
+                themeIcon.className = 'fa-solid fa-moon text-sm';
+            }
+        }
+    </script>
+</div>
