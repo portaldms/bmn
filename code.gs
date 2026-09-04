@@ -2,7 +2,6 @@
  * ============================================================================
  * PORTAL DATA HUB & LINK MANAGER (v2.0) - HIGH PERFORMANCE GAS BACKEND
  * File: Code.gs
- * Feature: CacheService Integration (Instant JSON response)
  * ============================================================================
  */
 
@@ -45,15 +44,15 @@ function doPost(e) {
         break;
       case 'saveLink':
         result = saveLinkData(payload.linkData);
-        clearPortalCache(); // Clear cache saat data berubah
+        clearPortalCache();
         break;
       case 'deleteLink':
         result = deleteLinkData(payload.linkId);
-        clearPortalCache(); // Clear cache saat data dihapus
+        clearPortalCache();
         break;
       case 'saveCategory':
         result = saveCategoryData(payload.catData);
-        clearPortalCache(); // Clear cache saat kategori berubah
+        clearPortalCache();
         break;
       default:
         result = { status: 'error', message: 'Action backend tidak dikenali: ' + action };
@@ -96,7 +95,6 @@ function getPortalData() {
   var cache = CacheService.getScriptCache();
   var cachedData = cache.get(CACHE_KEY);
 
-  // Kembalikan data dari Cache jika tersedia
   if (cachedData != null) {
     try {
       var parsed = JSON.parse(cachedData);
@@ -105,7 +103,6 @@ function getPortalData() {
     } catch(e) {}
   }
 
-  // Jika cache kosong, baca dari Spreadsheet
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const catSheet = ss.getSheetByName('Categories');
@@ -127,7 +124,6 @@ function getPortalData() {
       links: links
     };
 
-    // Simpan ke CacheService untuk query berikutnya
     cache.put(CACHE_KEY, JSON.stringify(result), CACHE_EXPIRATION);
     return result;
   } catch (err) {
@@ -149,7 +145,7 @@ function verifyAdminLogin(username, password) {
           username: username
         };
       }
-      return { status: 'error', message: 'Username atau Password salah (Default: admin / admin123)' };
+      return { status: 'error', message: 'Username atau Password salah.' };
     }
 
     const admins = sheetToObjects(adminSheet);
@@ -162,7 +158,7 @@ function verifyAdminLogin(username, password) {
       return {
         status: 'success',
         token: 'TOKEN_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9),
-        role: userMatch.Role || 'Super Admin',
+        role: userMatch.Role || 'User',
         username: userMatch.Username
       };
     }
