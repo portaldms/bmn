@@ -1,1008 +1,830 @@
-<!-- Resource Pre-Fetching Hints Untuk Kecepatan Maksimal -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="preconnect" href="https://cdnjs.cloudflare.com">
-<link rel="dns-prefetch" href="https://script.google.com">
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal Data Hub V2 II - User Management Admin Edition</title>
 
-<!-- Container Utama Full Screen Isolation -->
-<div id="blog-app-portal" class="dark fixed inset-0 z-[99999] w-screen h-screen overflow-y-auto bg-softDark-bg text-softDark-text font-sans transition-colors duration-300">
+  <!-- CDN Assets -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: { fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] } } }
+    }
+  </script>
+
+  <style>
+    .post-body, .entry-content, article { max-width: 100% !important; padding: 0 !important; margin: 0 !important; background: transparent !important; }
+    #portal-root-wrapper {
+      position: fixed !important; top: 0 !important; left: 0 !important;
+      width: 100vw !important; height: 100vh !important; background-color: #0b0f19 !important;
+      z-index: 999999 !important; overflow-y: auto !important; padding: 20px !important;
+    }
+    .dropdown-box {
+      display: none; position: absolute; top: 100%; right: 0; margin-top: 0.5rem; width: 16rem;
+      background-color: #111827; border: 1px solid #1f2937; border-radius: 1rem; padding: 0.5rem;
+      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); z-index: 50;
+    }
+    .dropdown-container:hover .dropdown-box { display: block; }
+    .fast-spinner {
+      width: 24px; height: 24px; border: 3px solid rgba(16, 185, 129, 0.2);
+      border-top-color: #10b981; border-radius: 50%; animation: spin 0.5s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body class="bg-[#0b0f19] text-slate-100 font-sans antialiased">
+
+  <div id="portal-root-wrapper" class="flex flex-col justify-between">
+
+    <!-- Fast Overlay Spinner -->
+    <div id="globalSpinnerOverlay" class="fixed inset-0 bg-slate-950/60 backdrop-blur-[2px] z-[999] hidden flex items-center justify-center">
+      <div class="bg-[#111827] border border-[#1f2937] px-5 py-3.5 rounded-2xl shadow-2xl flex items-center space-x-3">
+        <div class="fast-spinner"></div>
+        <span id="globalSpinnerMessage" class="text-xs font-semibold text-slate-200">Memproses...</span>
+      </div>
+    </div>
+
+    <div>
+      <!-- Topbar Navbar Header -->
+      <header class="w-full bg-[#111827] border border-[#1f2937] rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 mb-6 shadow-xl">
+        <div class="flex items-center space-x-3 cursor-pointer w-full md:w-auto justify-between md:justify-start" onclick="loadPage('ROOT')">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-extrabold shadow-lg">
+              <i class="fa-solid fa-folder"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h1 class="text-sm font-extrabold text-white">Portal DMS ALTEN</h1>
+                <span id="roleBadge" class="bg-emerald-500/10 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-500/20">ROLE: UMUM</span>
+              </div>
+              <p id="userOwnerInfo" class="text-[11px] text-slate-400">@public_access</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center space-x-2 w-full md:w-auto justify-end flex-wrap gap-y-2">
+          <div id="dynamicNavbarMenus" class="flex items-center space-x-2"></div>
+
+          <!-- Tombol Kelola User (Khusus ADMIN) -->
+          <button id="manageUserBtn" onclick="openUserManagementModal()" class="hidden whitespace-nowrap px-3.5 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-bold transition-all shadow-lg flex items-center gap-1.5">
+            <i class="fas fa-users-gear text-[10px]"></i><span>Kelola User</span>
+          </button>
+
+          <button id="addMenuMainBtn" onclick="openCrudModal()" class="hidden whitespace-nowrap px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-lg flex items-center gap-1.5">
+            <i class="fas fa-plus text-[10px]"></i><span>+ Menu Utama</span>
+          </button>
+
+          <button id="authBtn" onclick="handleAuthClick()" class="whitespace-nowrap px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-lg flex items-center gap-1.5">
+            <i class="fas fa-key text-[10px]"></i><span id="authBtnLabel">Login System</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Main Navigation & Card Content -->
+      <main class="space-y-6">
+        <div id="breadcrumbBar" class="flex items-center space-x-2">
+          <button onclick="loadPage('ROOT')" class="px-3 py-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-xl text-xs font-bold flex items-center gap-1.5">
+            <i class="fas fa-house text-[10px]"></i> Beranda Utama
+          </button>
+        </div>
+
+        <!-- Banner Header + Search Field In-line -->
+        <div class="relative overflow-hidden rounded-3xl bg-[#111827] border border-[#1f2937] p-6 sm:p-8 shadow-xl">
+          <span class="inline-block px-3 py-1 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 mb-3">
+            Selamat Datang di Portal Data Management System
+          </span>
+          
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <h2 id="bannerTitle" class="text-2xl sm:text-3xl font-extrabold text-white">Direktori Sistem & Tautan</h2>
+            
+            <div class="relative w-full md:w-80">
+              <i class="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-xs text-slate-500"></i>
+              <input type="text" id="searchInput" oninput="handleSearch(this.value)" placeholder="Cari menu / modul..." 
+                class="w-full bg-slate-900 border border-[#1f2937] rounded-xl pl-9 pr-8 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-all shadow-inner">
+              <button id="clearSearchBtn" onclick="clearSearch()" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500 hover:text-white">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
+
+          <p id="bannerDesc" class="text-slate-400 text-xs sm:text-sm mt-3 max-w-3xl leading-relaxed">
+            Silakan pilih menu di atas atau jelajahi modul di bawah ini.
+          </p>
+        </div>
+
+        <!-- Inline Loading Canvas -->
+        <div id="loadingState" class="flex flex-col items-center justify-center py-16 space-y-3">
+          <div class="fast-spinner"></div>
+          <p class="text-xs text-slate-400">Sinkronisasi data...</p>
+        </div>
+
+        <!-- Cards Container Grid -->
+        <div id="cardsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5 hidden"></div>
+      </main>
+    </div>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[100] hidden flex items-center justify-center p-4">
+      <div class="bg-[#111827] border border-[#1f2937] w-full max-w-sm rounded-2xl p-6 shadow-2xl">
+        <div class="flex justify-between items-center pb-3 border-b border-[#1f2937] mb-4">
+          <h3 class="text-xs font-bold text-white uppercase">Authentication System</h3>
+          <button onclick="closeLoginModal()" class="text-slate-400 hover:text-white"><i class="fas fa-times"></i></button>
+        </div>
+        <form onsubmit="executeLogin(event)" class="space-y-4">
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-300 mb-1">Username</label>
+            <input type="text" id="loginUser" required class="w-full bg-slate-900 border border-[#1f2937] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+          </div>
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-300 mb-1">Password</label>
+            <input type="password" id="loginPass" required class="w-full bg-slate-900 border border-[#1f2937] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+          </div>
+          <button type="submit" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-lg">Login Account</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- CRUD Menu Modal -->
+    <div id="crudModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[100] hidden flex items-center justify-center p-4">
+      <div class="bg-[#111827] border border-[#1f2937] w-full max-w-md rounded-2xl p-6 shadow-2xl">
+        <div class="flex justify-between items-center pb-3 border-b border-[#1f2937] mb-4">
+          <h3 class="text-xs font-bold text-white uppercase">Form Pengaturan Menu</h3>
+          <button onclick="closeCrudModal()" class="text-slate-400 hover:text-white"><i class="fas fa-times"></i></button>
+        </div>
+        <form onsubmit="executeSaveMenu(event)" class="space-y-3">
+          <input type="hidden" id="formId">
+          <input type="hidden" id="formParentId">
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-300 mb-1">Judul Menu / Halaman</label>
+            <input type="text" id="formTitle" required class="w-full bg-slate-900 border border-[#1f2937] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+          </div>
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-300 mb-1">Akses Privasi</label>
+            <select id="formVisibility" class="w-full bg-slate-900 border border-[#1f2937] rounded-xl px-3 py-2 text-xs text-white">
+              <option value="UMUM">UMUM (Semua Orang)</option>
+              <option value="PRIVASI">PRIVASI (Hanya Saya / Owner)</option>
+              <option value="PRIVASI_ADMIN">PRIVASI & ADMIN (Saya + Admin)</option>
+            </select>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-300 mb-1">Tipe Aksi</label>
+              <select id="formType" class="w-full bg-slate-900 border border-[#1f2937] rounded-xl px-3 py-2 text-xs text-white">
+                <option value="link">Tautan Eksternal</option>
+                <option value="folder">Sub Halaman (Folder)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-300 mb-1">Icon FontAwesome</label>
+              <input type="text" id="formIcon" value="fas fa-link" class="w-full bg-slate-900 border border-[#1f2937] rounded-xl px-3 py-2 text-xs text-white">
+            </div>
+          </div>
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-300 mb-1">Target URL</label>
+            <input type="text" id="formUrl" value="#" class="w-full bg-slate-900 border border-[#1f2937] rounded-xl px-3 py-2 text-xs text-white">
+          </div>
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-300 mb-1">Deskripsi Singkat</label>
+            <textarea id="formDesc" rows="2" class="w-full bg-slate-900 border border-[#1f2937] rounded-xl px-3 py-2 text-xs text-white"></textarea>
+          </div>
+          <div class="flex justify-end space-x-2 pt-2">
+            <button type="button" onclick="closeCrudModal()" class="px-4 py-2 bg-slate-800 text-xs text-slate-300 rounded-xl">Batal</button>
+            <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white rounded-xl shadow-lg">Simpan Data</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- MODAL USER MANAGEMENT (KHUSUS ADMIN) -->
+    <div id="userManagementModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[100] hidden flex items-center justify-center p-4">
+      <div class="bg-[#111827] border border-[#1f2937] w-full max-w-2xl rounded-2xl p-6 shadow-2xl flex flex-col max-h-[90vh]">
+        
+        <div class="flex justify-between items-center pb-3 border-b border-[#1f2937] mb-4">
+          <div class="flex items-center space-x-2">
+            <i class="fas fa-users-gear text-purple-400"></i>
+            <h3 class="text-xs font-bold text-white uppercase tracking-wider">Manajemen User (Admin Only)</h3>
+          </div>
+          <button onclick="closeUserManagementModal()" class="text-slate-400 hover:text-white"><i class="fas fa-times"></i></button>
+        </div>
+
+        <div class="flex justify-between items-center mb-4">
+          <p class="text-[11px] text-slate-400">Kelola pengguna sistem dan hak akses peran (Role).</p>
+          <button onclick="openUserFormModal()" class="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-bold transition-all shadow-lg flex items-center gap-1">
+            <i class="fas fa-plus text-[10px]"></i><span>Tambah User</span>
+          </button>
+        </div>
+
+        <!-- User Table Data Container -->
+        <div class="overflow-y-auto flex-1 border border-[#1f2937] rounded-xl">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-900 border-b border-[#1f2937] text-[10px] uppercase font-bold text-slate-400">
+                <th class="p-3">User ID</th>
+                <th class="p-3">Username</th>
+                <th class="p-3">Nama Lengkap</th>
+                <th class="p-3">Role</th>
+                <th class="p-3 text-center">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="userTableBody" class="divide-y divide-[#1f2937] text-xs">
+              <!-- Render via JS -->
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- FORM INPUT / EDIT USER MODAL (MANUAL USER ID) -->
+    <div id="userFormModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[110] hidden flex items-center justify-center p-4">
+      <div class="bg-[#111827] border border-[#1f2937] w-full max-w-sm rounded-2xl p-6 shadow-2xl">
+        <div class="flex justify-between items-center pb-3 border-b border-[#1f2937] mb-4">
+          <h3 id="userFormTitle" class="text-xs font-bold text-white uppercase tracking-wider">Tambah User Baru</h3>
+          <button onclick="closeUserFormModal()" class="text-slate-400 hover:text-white"><i class="fas fa-times"></i></button>
+        </div>
+        <form onsubmit="executeSaveUser(event)" class="space-y-3">
+          <input type="hidden" id="userFormIsEdit" value="false">
+          
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-300 mb-1">User ID (Manual Input)</label>
+            <input type="text" id="userFormId" placeholder="misal: USR-001 / ADM-01" required class="w-full bg-slate-900 border border-[#1f2937] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500">
+            <span id="userIdHelp" class="text-[10px] text-slate-500 mt-1 block">ID unik untuk pengenal pemilik menu.</span>
+          </div>
+
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-300 mb-1">Username</label>
+            <input type="text" id="userFormUsername" required class="w-full bg-slate-900 border border-[#1f2937] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500">
+          </div>
+
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-300 mb-1">Password</label>
+            <input type="text" id="userFormPassword" required class="w-full bg-slate-900 border border-[#1f2937] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500">
+          </div>
+
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-300 mb-1">Nama Lengkap</label>
+            <input type="text" id="userFormFullName" required class="w-full bg-slate-900 border border-[#1f2937] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500">
+          </div>
+
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-300 mb-1">Hak Akses / Role</label>
+            <select id="userFormRole" class="w-full bg-slate-900 border border-[#1f2937] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500">
+              <option value="USER_KHUSUS">USER_KHUSUS (Kelola Menu Sendiri)</option>
+              <option value="ADMIN">ADMIN (Full Access & User Manager)</option>
+            </select>
+          </div>
+
+          <div class="flex justify-end space-x-2 pt-2">
+            <button type="button" onclick="closeUserFormModal()" class="px-4 py-2 bg-slate-800 text-xs text-slate-300 rounded-xl">Batal</button>
+            <button type="submit" class="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-xs font-bold text-white rounded-xl shadow-lg">Simpan User</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="mt-8 pt-4 border-t border-[#1f2937] text-center text-[11px] text-slate-500">
+      &copy; 2022 Portal DMS Engine V1
+    </footer>
+  </div>
+
+  <script>
+    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbyDxeZSIBO03vCetpXHoUJWzlG6dH2UXbKt_bGQ0X1sNUq405cqetovpmHNaLSvdITSPA/exec";
     
-    <!-- Font Awesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Google Fonts Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        softLight: {
-                            bg: '#f8fafc',
-                            card: '#ffffff',
-                            header: '#f1f5f9',
-                            border: '#e2e8f0',
-                            text: '#0f172a',
-                            subtext: '#64748b'
-                        },
-                        softDark: {
-                            bg: '#0f172a',
-                            card: '#1e293b',
-                            header: '#182232',
-                            border: '#334155',
-                            text: '#f1f5f9',
-                            subtext: '#94a3b8'
-                        }
-                    },
-                    fontFamily: { sans: ['Inter', 'sans-serif'] }
-                }
-            }
+    let rootMenus = [];
+    let usersList = [];
+    let currentUser = null;
+    let activePageId = "ROOT";
+
+    document.addEventListener('DOMContentLoaded', () => {
+      fetchData();
+    });
+
+    function showGlobalSpinner(msg = "Memproses...") {
+      document.getElementById('globalSpinnerMessage').innerText = msg;
+      document.getElementById('globalSpinnerOverlay').classList.remove('hidden');
+    }
+    function hideGlobalSpinner() { document.getElementById('globalSpinnerOverlay').classList.add('hidden'); }
+
+    /* SMART CACHING ENGINE FETCH DATA */
+    async function fetchData(forceRefresh = false) {
+      const userId = currentUser ? currentUser.userId : "PUBLIC";
+      const role = currentUser ? currentUser.role : "UMUM";
+      const cacheKey = `portal_cache_${userId}_${role}`;
+
+      if (!forceRefresh) {
+        const cachedData = sessionStorage.getItem(cacheKey);
+        if (cachedData) {
+          rootMenus = JSON.parse(cachedData);
+          renderHeaderUI();
+          loadPage(activePageId);
+          document.getElementById('loadingState').classList.add('hidden');
+          document.getElementById('cardsGrid').classList.remove('hidden');
+          return;
         }
-    </script>
+      }
 
-    <style>
-        .glass-card {
-            background: rgba(30, 41, 59, 0.85);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(51, 65, 85, 0.7);
+      document.getElementById('loadingState').classList.remove('hidden');
+      document.getElementById('cardsGrid').classList.add('hidden');
+
+      try {
+        const response = await fetch(`${GAS_API_URL}?action=getMenus&userId=${userId}&role=${role}`);
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+          rootMenus = result.data;
+          sessionStorage.setItem(cacheKey, JSON.stringify(rootMenus));
+          renderHeaderUI();
+          loadPage(activePageId);
         }
-        .scrollbar-thin::-webkit-scrollbar { height: 6px; width: 6px; }
-        .scrollbar-thin::-webkit-scrollbar-thumb {
-            background-color: rgba(51, 65, 85, 0.8);
-            border-radius: 9999px;
+      } catch (err) {
+        alert("Gagal memuat API Backend.");
+      } finally {
+        document.getElementById('loadingState').classList.add('hidden');
+        document.getElementById('cardsGrid').classList.remove('hidden');
+      }
+    }
+
+    function clearAppCache() {
+      Object.keys(sessionStorage).forEach(key => {
+        if (key.startsWith('portal_cache_')) sessionStorage.removeItem(key);
+      });
+    }
+
+    function renderHeaderUI() {
+      const badge = document.getElementById('roleBadge');
+      const ownerInfo = document.getElementById('userOwnerInfo');
+      const authBtnLabel = document.getElementById('authBtnLabel');
+      const addMenuMainBtn = document.getElementById('addMenuMainBtn');
+      const manageUserBtn = document.getElementById('manageUserBtn');
+
+      if (currentUser) {
+        badge.innerText = `ROLE: ${currentUser.role}`;
+        ownerInfo.innerText = `@${currentUser.username} (${currentUser.fullName})`;
+        authBtnLabel.innerText = "Logout";
+        addMenuMainBtn.classList.remove('hidden');
+
+        if (currentUser.role === 'ADMIN') {
+          manageUserBtn.classList.remove('hidden');
+        } else {
+          manageUserBtn.classList.add('hidden');
         }
-    </style>
+      } else {
+        badge.innerText = "ROLE: UMUM";
+        ownerInfo.innerText = "@public_access";
+        authBtnLabel.innerText = "Login System";
+        addMenuMainBtn.classList.add('hidden');
+        manageUserBtn.classList.add('hidden');
+      }
 
-    <!-- Loading Overlay Global -->
-    <div id="loadingOverlay" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center transition-opacity duration-200 hidden">
-        <div class="bg-softDark-card p-5 rounded-2xl shadow-2xl flex items-center space-x-3 border border-softDark-border">
-            <i class="fa-solid fa-circle-notch fa-spin text-teal-400 text-2xl"></i>
-            <span class="text-xs font-semibold text-softDark-text">Memproses Data...</span>
-        </div>
-    </div>
+      renderNavbarDropdowns();
+    }
 
-    <!-- Notification Toast Container -->
-    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+    function renderNavbarDropdowns() {
+      const navContainer = document.getElementById('dynamicNavbarMenus');
+      navContainer.innerHTML = rootMenus.map(menu => {
+        const hasSub = menu.submenus && menu.submenus.length > 0;
+        if (hasSub) {
+          return `
+            <div class="dropdown-container relative">
+              <button onclick="loadPage('${menu.id}')" class="px-3 py-1.5 bg-slate-800/80 hover:bg-slate-800 border border-[#1f2937] rounded-xl text-xs font-bold text-slate-200 flex items-center gap-2">
+                <i class="${menu.iconClass || 'fas fa-link'} text-emerald-400"></i>
+                <span>${menu.title}</span>
+                <i class="fas fa-chevron-down text-[10px] text-slate-500"></i>
+              </button>
+              <div class="dropdown-box">
+                <div class="flex justify-between items-center text-[10px] font-bold text-slate-500 uppercase px-2 py-1 border-b border-[#1f2937] mb-1">
+                  <span>SUB HALAMAN</span>
+                  ${currentUser ? `<button onclick="openCrudModal(null, '${menu.id}')" class="text-emerald-400 font-bold">+ Sub</button>` : ''}
+                </div>
+                ${menu.submenus.map(sub => `
+                  <div onclick="handleCardAction('${sub.id}')" class="flex items-center justify-between px-2.5 py-2 rounded-lg hover:bg-slate-800 cursor-pointer group">
+                    <span class="text-xs text-slate-300 group-hover:text-emerald-400 font-medium">${sub.title}</span>
+                    <i class="fas fa-chevron-right text-[10px] text-slate-600"></i>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        } else {
+          return `
+            <button onclick="handleCardAction('${menu.id}')" class="px-3 py-1.5 bg-slate-800/80 hover:bg-slate-800 border border-[#1f2937] rounded-xl text-xs font-bold text-slate-200 flex items-center gap-2">
+              <i class="${menu.iconClass || 'fas fa-link'} text-emerald-400"></i>
+              <span>${menu.title}</span>
+            </button>
+          `;
+        }
+      }).join('');
+    }
 
-    <!-- Header Navigation -->
-    <header class="sticky top-0 z-30 bg-softDark-header/90 backdrop-blur-md border-b border-softDark-border shadow-md">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+    function handleSearch(keyword) {
+      const clearBtn = document.getElementById('clearSearchBtn');
+      const grid = document.getElementById('cardsGrid');
+      const query = keyword.trim().toLowerCase();
+
+      if (query !== '') {
+        clearBtn.classList.remove('hidden');
+        const allItems = flattenMenus(rootMenus);
+        const filtered = allItems.filter(item => 
+          item.title.toLowerCase().includes(query) || 
+          (item.description && item.description.toLowerCase().includes(query))
+        );
+
+        document.getElementById('bannerTitle').innerText = `Hasil Pencarian: "${keyword}"`;
+        document.getElementById('bannerDesc').innerText = `Ditemukan ${filtered.length} menu yang cocok.`;
+
+        grid.innerHTML = filtered.length > 0
+          ? filtered.map(item => renderItemCard(item)).join('')
+          : `<div class="col-span-full py-12 text-center text-xs text-slate-500 bg-[#111827] rounded-2xl border border-[#1f2937]">Menu tidak ditemukan.</div>`;
+      } else {
+        clearBtn.classList.add('hidden');
+        loadPage(activePageId);
+      }
+    }
+
+    function clearSearch() {
+      document.getElementById('searchInput').value = '';
+      handleSearch('');
+    }
+
+    function flattenMenus(list) {
+      let result = [];
+      list.forEach(item => {
+        result.push(item);
+        if (item.submenus && item.submenus.length > 0) {
+          result = result.concat(flattenMenus(item.submenus));
+        }
+      });
+      return result;
+    }
+
+    function loadPage(pageId) {
+      activePageId = pageId;
+      const grid = document.getElementById('cardsGrid');
+      document.getElementById('searchInput').value = '';
+      document.getElementById('clearSearchBtn').classList.add('hidden');
+      
+      let displayItems = [];
+      if (pageId === "ROOT") {
+        displayItems = rootMenus;
+        document.getElementById('bannerTitle').innerText = "Direktori & Tautan Sistem";
+        document.getElementById('bannerDesc').innerText = "Silakan pilih menu di atas atau jelajahi modul di bawah ini.";
+      } else {
+        const item = findItemRecursive(rootMenus, pageId);
+        if (item) {
+          displayItems = item.submenus || [];
+          document.getElementById('bannerTitle').innerText = item.title;
+          document.getElementById('bannerDesc').innerText = item.description || "Daftar modul pendukung.";
+        }
+      }
+
+      grid.innerHTML = displayItems.length > 0 
+        ? displayItems.map(item => renderItemCard(item)).join('')
+        : `<div class="col-span-full py-12 text-center text-xs text-slate-500 bg-[#111827] rounded-2xl border border-[#1f2937]">Belum ada modul.</div>`;
+    }
+
+    function renderItemCard(item) {
+      const canEdit = currentUser && (currentUser.role === 'ADMIN' || item.ownerUserId === currentUser.userId);
+      const isFolder = item.type === 'folder' || (item.submenus && item.submenus.length > 0);
+
+      let visBadge = `<span class="bg-blue-500/20 text-blue-300 border-blue-500/30 text-[9px] font-bold px-2 py-0.5 rounded border">UMUM</span>`;
+      if (item.visibility === 'PRIVASI') {
+        visBadge = `<span class="bg-amber-500/20 text-amber-300 border-amber-500/30 text-[9px] font-bold px-2 py-0.5 rounded border"><i class="fas fa-lock text-[8px] mr-1"></i>PRIVASI</span>`;
+      } else if (item.visibility === 'PRIVASI_ADMIN') {
+        visBadge = `<span class="bg-purple-500/20 text-purple-300 border-purple-500/30 text-[9px] font-bold px-2 py-0.5 rounded border"><i class="fas fa-user-shield text-[8px] mr-1"></i>PRIVASI & ADMIN</span>`;
+      }
+
+      return `
+        <div class="bg-[#111827] border border-[#1f2937] hover:border-emerald-500/50 rounded-2xl p-4 flex flex-col justify-between shadow-lg transition-all group">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20">
+                <i class="${item.iconClass || 'fas fa-link'} text-base"></i>
+              </div>
+
+              <div class="flex items-center space-x-1">
+                ${canEdit ? `
+                  <button onclick="openCrudModal(null, '${item.id}')" class="px-2 py-1 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-bold hover:bg-emerald-500/30">+ Sub</button>
+                  <button onclick="editMenu(event, '${item.id}')" class="w-6 h-6 rounded bg-amber-500/20 text-amber-300 text-[10px] flex items-center justify-center hover:bg-amber-500/30"><i class="fas fa-pen"></i></button>
+                  <button onclick="deleteMenu(event, '${item.id}')" class="w-6 h-6 rounded bg-red-500/20 text-red-300 text-[10px] flex items-center justify-center hover:bg-red-500/30"><i class="fas fa-trash"></i></button>
+                ` : ''}
+              </div>
+            </div>
+
+            <h4 class="text-sm font-bold text-white">${item.title}</h4>
+            <p class="text-xs text-slate-400 mt-1 line-clamp-2">${item.description || ''}</p>
             
-            <div class="flex items-center space-x-3 cursor-pointer" onclick="switchView('portal')">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-500 to-cyan-600 flex items-center justify-center text-white shadow-lg shadow-teal-500/20">
-                    <i class="fa-solid fa-folder-tree text-lg"></i>
-                </div>
-                <div>
-                    <h1 class="font-bold text-base sm:text-lg leading-tight text-softDark-text tracking-wide">Portal Data Hub</h1>
-                    <p class="text-xs text-softDark-subtext hidden sm:block">@alten2025</p>
-                </div>
+            <div class="mt-3 flex items-center gap-2">
+              ${visBadge}
+              <span class="text-[9px] font-semibold text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-[#1f2937]">
+                Owner: ${item.ownerUserId}
+              </span>
             </div>
+          </div>
 
-            <div class="flex items-center space-x-2 sm:space-x-3">
-                <nav id="navMenu" class="hidden flex bg-softDark-bg/80 p-1 rounded-xl border border-softDark-border">
-                    <button id="tabPortalBtn" onclick="switchView('portal')" class="px-3 sm:px-4 py-1.5 text-xs font-semibold rounded-lg bg-softDark-card text-teal-400 shadow-xs transition">
-                        <i class="fa-solid fa-compass sm:mr-1.5"></i><span class="hidden sm:inline">Portal Tautan</span>
-                    </button>
-                    <!-- Tombol Kelola Data Admin (Disembunyikan jika Non-Admin) -->
-                    <button id="tabAdminBtn" onclick="handleAdminTabClick()" class="hidden px-3 sm:px-4 py-1.5 text-xs font-semibold rounded-lg text-softDark-subtext hover:text-white transition">
-                        <i class="fa-solid fa-sliders sm:mr-1.5"></i><span class="hidden sm:inline">Kelola Data (Admin)</span>
-                    </button>
-                </nav>
-
-                <div id="userBadge" class="hidden sm:flex items-center bg-softDark-card/80 px-3 py-1.5 rounded-lg border border-softDark-border">
-                    <span id="roleDot" class="w-2 h-2 rounded-full bg-slate-500 mr-2"></span>
-                    <span id="roleText" class="text-xs font-medium text-softDark-subtext">Tamu</span>
-                </div>
-
-                <button id="authBtn" onclick="toggleAuthAction()" class="px-3.5 py-1.5 text-xs font-semibold text-white bg-teal-600 hover:bg-teal-500 rounded-xl shadow-md shadow-teal-600/20 transition flex items-center gap-1.5">
-                    <i class="fa-solid fa-right-to-bracket"></i> Login
-                </button>
-            </div>
+          <div class="mt-5 pt-3 border-t border-[#1f2937] flex items-center justify-between">
+            <button onclick="handleCardAction('${item.id}')" class="text-xs font-bold text-emerald-400 flex items-center gap-1 hover:underline">
+              <span>${isFolder ? 'Buka Halaman' : 'Akses Tautan'}</span>
+              <i class="fas fa-arrow-right text-[10px]"></i>
+            </button>
+          </div>
         </div>
-    </header>
+      `;
+    }
 
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
+    function handleCardAction(id) {
+      const item = findItemRecursive(rootMenus, id);
+      if (!item) return;
 
-        <!-- LOCK SCREEN: TAMPILAN JIKA USER BELUM LOGIN -->
-        <section id="guestLockScreen" class="py-12 flex items-center justify-center">
-            <div class="max-w-md w-full glass-card p-8 rounded-3xl border border-softDark-border text-center shadow-2xl space-y-5">
-                <div class="w-16 h-16 bg-teal-950/80 text-teal-400 border border-teal-800/80 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
-                    <i class="fa-solid fa-shield-halved text-3xl"></i>
-                </div>
-                <div>
-                    <h2 class="text-xl font-extrabold text-softDark-text">Akses Terkunci</h2>
-                    <p class="text-xs text-softDark-subtext mt-2 leading-relaxed">
-                        Anda harus login terlebih dahulu menggunakan akun terdaftar untuk mengakses Portal Tautan dan Direktori Data.
-                    </p>
-                </div>
-                <button onclick="openLoginModal()" class="w-full py-3 bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-500 hover:to-cyan-500 text-white font-semibold text-xs rounded-xl shadow-lg shadow-teal-500/20 transition flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-right-to-bracket"></i> Login Sekarang
-                </button>
-            </div>
-        </section>
+      if (item.submenus && item.submenus.length > 0) {
+        loadPage(item.id);
+      } else if (item.targetUrl && item.targetUrl !== '#') {
+        window.open(item.targetUrl, '_blank');
+      } else {
+        alert(`Menu: ${item.title}\nTautan belum dikonfigurasi.`);
+      }
+    }
 
-        <!-- VIEW 1: PORTAL TAUTAN (KHUSUS USER TERAUTENTIKASI) -->
-        <section id="portalView" class="hidden space-y-6">
-            <div class="glass-card rounded-2xl p-6 sm:p-8 relative overflow-hidden shadow-xl">
-                <div class="relative z-10 max-w-2xl">
-                    <span class="px-3 py-1 rounded-full text-xs font-semibold bg-teal-950/80 text-teal-300 border border-teal-800/60 mb-3 inline-block">
-                        <i class="fa-solid fa-bolt mr-1 text-teal-400"></i> Centralized Link & Sub-Menu Hub
-                    </span>
-                    <h2 class="text-2xl sm:text-3xl font-extrabold text-softDark-text tracking-tight">
-                        Cari & Temukan Data Tautan Lebih Cepat
-                    </h2>
-                    <p class="mt-2 text-sm text-softDark-subtext">
-                        Akses seluruh data, direktori dokumen, dan file internal berdasarkan Kategori dan Sub-Menu Data.
-                    </p>
+    function handleAuthClick() {
+      if (currentUser) {
+        currentUser = null;
+        clearAppCache();
+        fetchData(true);
+      } else {
+        document.getElementById('loginModal').classList.remove('hidden');
+      }
+    }
+    function closeLoginModal() { document.getElementById('loginModal').classList.add('hidden'); }
 
-                    <div class="mt-6 relative">
-                        <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-softDark-subtext text-sm"></i>
-                        <input type="text" id="searchInput" oninput="renderLinks()" placeholder="Cari nama menu, sub menu, dokumen, atau kata kunci..." 
-                               class="w-full pl-11 pr-4 py-3 rounded-xl border border-softDark-border bg-softDark-card/90 text-softDark-text shadow-inner focus:ring-2 focus:ring-teal-500/50 text-sm focus:outline-none transition placeholder:text-slate-500">
-                    </div>
-                </div>
-            </div>
+    async function executeLogin(e) {
+      e.preventDefault();
+      showGlobalSpinner("Verifikasi Autentikasi...");
 
-            <!-- CONTAINER KONTEN PORTAL -->
-            <div id="menuContentWrapper" class="space-y-6">
-                <!-- Filter Kategori Utama -->
-                <div class="space-y-2">
-                    <div class="text-xs font-bold uppercase tracking-wider text-softDark-subtext flex items-center gap-1.5">
-                        <i class="fa-solid fa-layer-group text-teal-400"></i> Kategori Utama
-                    </div>
-                    <div id="categoryPills" class="flex items-center space-x-2 overflow-x-auto pb-2 scrollbar-thin"></div>
-                </div>
+      const u = document.getElementById('loginUser').value;
+      const p = document.getElementById('loginPass').value;
 
-                <!-- Filter Sub-Menu Data -->
-                <div id="subMenuContainer" class="space-y-2">
-                    <div class="text-xs font-bold uppercase tracking-wider text-softDark-subtext flex items-center gap-1.5">
-                        <i class="fa-solid fa-diagram-subgroup text-cyan-400"></i> Sub-Menu Data
-                    </div>
-                    <div id="subMenuPills" class="flex items-center space-x-2 overflow-x-auto pb-2 scrollbar-thin"></div>
-                </div>
-
-                <!-- Links Cards Grid -->
-                <div id="linksGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-
-                <!-- Empty State -->
-                <div id="emptyPortalState" class="hidden text-center py-12 bg-softDark-card/80 rounded-2xl border border-dashed border-softDark-border">
-                    <i class="fa-solid fa-folder-open text-3xl text-softDark-subtext mb-2"></i>
-                    <h3 class="text-sm font-semibold text-softDark-text">Tautan atau Sub-Menu Tidak Ditemukan</h3>
-                    <p class="text-xs text-softDark-subtext mt-1">Coba gunakan kata kunci lain atau pilih kategori yang berbeda.</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- VIEW 2: ADMIN MANAGEMENT DASHBOARD & TABLE (KHUSUS ROLE ADMIN) -->
-        <section id="adminView" class="hidden space-y-6">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-softDark-card p-6 rounded-2xl border border-softDark-border shadow-lg">
-                <div>
-                    <h2 class="text-xl font-bold text-softDark-text flex items-center gap-2">
-                        <i class="fa-solid fa-user-gear text-teal-400"></i> Panel Manajemen Admin
-                    </h2>
-                    <p class="text-xs text-softDark-subtext mt-1">Kelola direktori kategori, sub-menu data, dan tautan aplikasi.</p>
-                </div>
-                <div class="flex items-center space-x-2 w-full sm:w-auto">
-                    <button onclick="openCategoryModal()" class="flex-1 sm:flex-none px-4 py-2 bg-softDark-bg text-softDark-text font-semibold text-xs rounded-xl border border-softDark-border hover:bg-slate-800 transition">
-                        <i class="fa-solid fa-folder-plus mr-1 text-teal-400"></i> Kelola Kategori
-                    </button>
-                    <button onclick="openLinkModal()" class="flex-1 sm:flex-none px-4 py-2 bg-teal-600 text-white font-semibold text-xs rounded-xl hover:bg-teal-500 transition shadow-md shadow-teal-600/20">
-                        <i class="fa-solid fa-plus mr-1"></i> Tambah Tautan
-                    </button>
-                </div>
-            </div>
-
-            <!-- TABEL DATA LINK -->
-            <div class="bg-softDark-card rounded-2xl border border-softDark-border overflow-hidden shadow-lg">
-                <div class="p-4 border-b border-softDark-border flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center">
-                    <div class="flex items-center space-x-2">
-                        <h3 class="font-semibold text-sm text-softDark-text flex items-center gap-2">
-                            <i class="fa-solid fa-table text-teal-400"></i> Tabel Master Hyperlink & Sub-Menu
-                        </h3>
-                        <span id="totalLinkBadge" class="px-2.5 py-0.5 text-xs font-semibold bg-softDark-bg text-softDark-subtext rounded-full border border-softDark-border">
-                            0 Data
-                        </span>
-                    </div>
-
-                    <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                        <div class="relative flex-1 sm:w-64">
-                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-softDark-subtext text-xs"></i>
-                            <input type="text" id="adminSearchInput" oninput="renderAdminTable()" placeholder="Cari judul, sub menu, URL..." 
-                                   class="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl border border-softDark-border bg-softDark-bg text-softDark-text focus:ring-2 focus:ring-teal-500/50 focus:outline-none">
-                        </div>
-                        <select id="adminCategoryFilter" onchange="renderAdminTable()" class="px-3 py-1.5 text-xs border border-softDark-border rounded-xl bg-softDark-bg text-softDark-text focus:ring-2 focus:ring-teal-500/50 focus:outline-none">
-                            <option value="ALL">Semua Kategori</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="bg-softDark-bg/80 text-softDark-subtext text-[11px] uppercase font-semibold border-b border-softDark-border">
-                                <th class="p-4">Judul Dokumen / Aplikasi</th>
-                                <th class="p-4">Kategori</th>
-                                <th class="p-4">Sub-Menu Data</th>
-                                <th class="p-4">Target URL</th>
-                                <th class="p-4">Badge</th>
-                                <th class="p-4 text-center">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody id="adminTableBody" class="divide-y divide-softDark-border text-xs"></tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <!-- MODAL: LOGIN DENGAN SPINNER LOADING -->
-    <div id="loginModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs hidden flex items-center justify-center p-4">
-        <div class="bg-softDark-card rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-softDark-border">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-base font-bold text-softDark-text flex items-center gap-2">
-                    <i class="fa-solid fa-lock text-teal-400"></i> Login Autentikasi User
-                </h3>
-                <button onclick="closeLoginModal()" class="text-softDark-subtext hover:text-white">
-                    <i class="fa-solid fa-xmark text-lg"></i>
-                </button>
-            </div>
-            
-            <form onsubmit="handleLoginSubmit(event)" class="space-y-4">
-                <div>
-                    <label class="block text-xs font-semibold text-softDark-text mb-1">Username</label>
-                    <input type="text" id="loginUsername" placeholder="Username Anda..." required class="w-full px-3 py-2 text-xs border border-softDark-border rounded-xl bg-softDark-bg text-softDark-text focus:ring-2 focus:ring-teal-500/50 focus:outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-softDark-text mb-1">Password</label>
-                    <input type="password" id="loginPassword" placeholder="Password Anda..." required class="w-full px-3 py-2 text-xs border border-softDark-border rounded-xl bg-softDark-bg text-softDark-text focus:ring-2 focus:ring-teal-500/50 focus:outline-none">
-                </div>
-                <div id="loginError" class="hidden text-xs text-rose-400 font-medium bg-rose-950/40 p-2.5 rounded-lg border border-rose-900"></div>
-                
-                <!-- Tombol Submit Login dengan Id untuk Spinner -->
-                <button type="submit" id="submitLoginBtn" class="w-full py-2.5 text-xs font-semibold text-white bg-teal-600 hover:bg-teal-500 rounded-xl shadow-md transition flex items-center justify-center gap-2">
-                    <span>Masuk & Autentikasi</span>
-                </button>
-            </form>
-        </div>
-    </div>
-
-    <!-- MODAL: FORM LINK (ADMIN ONLY) -->
-    <div id="linkModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs hidden flex items-center justify-center p-4">
-        <div class="bg-softDark-card rounded-2xl max-w-md w-full p-6 shadow-2xl border border-softDark-border">
-            <div class="flex justify-between items-center mb-4">
-                <h3 id="modalLinkTitle" class="text-base font-bold text-softDark-text">Tambah Hyperlink Baru</h3>
-                <button onclick="closeLinkModal()" class="text-softDark-subtext hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-            
-            <form id="linkForm" onsubmit="handleSaveLink(event)" class="space-y-4">
-                <input type="hidden" id="formLinkId">
-                <div>
-                    <label class="block text-xs font-semibold text-softDark-text mb-1">Judul Dokumen / Aplikasi *</label>
-                    <input type="text" id="formTitle" required placeholder="Contoh: Form Pengajuan Cuti" class="w-full px-3 py-2 text-xs border border-softDark-border rounded-xl bg-softDark-bg text-softDark-text focus:ring-2 focus:ring-teal-500/50 focus:outline-none">
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-semibold text-softDark-text mb-1">Kategori Utama *</label>
-                        <select id="formCategory" required class="w-full px-3 py-2 text-xs border border-softDark-border rounded-xl bg-softDark-bg text-softDark-text focus:ring-2 focus:ring-teal-500/50 focus:outline-none"></select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-softDark-text mb-1">Sub-Menu Data *</label>
-                        <input type="text" id="formSubMenu" placeholder="Contoh: Formulir, SOP, Laporan" required class="w-full px-3 py-2 text-xs border border-softDark-border rounded-xl bg-softDark-bg text-softDark-text focus:ring-2 focus:ring-teal-500/50 focus:outline-none">
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-softDark-text mb-1">URL Hyperlink *</label>
-                    <input type="url" id="formUrl" required placeholder="https://..." class="w-full px-3 py-2 text-xs border border-softDark-border rounded-xl bg-softDark-bg text-softDark-text focus:ring-2 focus:ring-teal-500/50 focus:outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-softDark-text mb-1">Deskripsi Singkat</label>
-                    <textarea id="formDescription" rows="2" placeholder="Jelaskan ringkasan isi dokumen..." class="w-full px-3 py-2 text-xs border border-softDark-border rounded-xl bg-softDark-bg text-softDark-text focus:ring-2 focus:ring-teal-500/50 focus:outline-none"></textarea>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-softDark-text mb-1">Badge Label (Opsional)</label>
-                    <input type="text" id="formBadge" placeholder="Misal: Utama, Baru, Wajib" class="w-full px-3 py-2 text-xs border border-softDark-border rounded-xl bg-softDark-bg text-softDark-text focus:ring-2 focus:ring-teal-500/50 focus:outline-none">
-                </div>
-                <div class="flex justify-end space-x-2 pt-3 border-t border-softDark-border">
-                    <button type="button" onclick="closeLinkModal()" class="px-4 py-2 text-xs text-softDark-subtext hover:text-white transition">Batal</button>
-                    <button type="submit" class="px-4 py-2 text-xs font-semibold text-white bg-teal-600 rounded-xl hover:bg-teal-500 transition shadow-md">Simpan Tautan</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- MODAL: KELOLA KATEGORI (ADMIN ONLY) -->
-    <div id="categoryModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs hidden flex items-center justify-center p-4">
-        <div class="bg-softDark-card rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-softDark-border space-y-4">
-            <div class="flex justify-between items-center border-b border-softDark-border pb-3">
-                <h3 class="text-base font-bold text-softDark-text flex items-center gap-2">
-                    <i class="fa-solid fa-folder-tree text-teal-400"></i> Kelola Kategori Utama
-                </h3>
-                <button onclick="closeCategoryModal()" class="text-softDark-subtext hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-            
-            <form onsubmit="handleAddCategory(event)" class="space-y-3 bg-softDark-bg/60 p-3.5 rounded-xl border border-softDark-border">
-                <span class="text-xs font-bold text-softDark-text flex items-center gap-1.5">
-                    <i class="fa-solid fa-plus text-teal-400"></i> Tambah Kategori Baru
-                </span>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <input type="text" id="newCatName" required placeholder="Nama Kategori..." class="w-full px-3 py-1.5 text-xs border border-softDark-border rounded-lg bg-softDark-card text-softDark-text focus:ring-2 focus:ring-teal-500/50 focus:outline-none">
-                    <input type="text" id="newCatDesc" placeholder="Deskripsi Singkat..." class="w-full px-3 py-1.5 text-xs border border-softDark-border rounded-lg bg-softDark-card text-softDark-text focus:ring-2 focus:ring-teal-500/50 focus:outline-none">
-                </div>
-                <button type="submit" class="w-full py-2 text-xs font-semibold bg-teal-600 hover:bg-teal-500 text-white rounded-lg transition shadow-xs">Simpan Kategori Baru</button>
-            </form>
-
-            <div class="space-y-2 max-h-56 overflow-y-auto scrollbar-thin pr-1">
-                <span class="text-xs font-bold uppercase tracking-wider text-softDark-subtext">Daftar Kategori Terdaftar</span>
-                <div id="categoryListContainer" class="space-y-2"></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL: KONFIRMASI HAPUS -->
-    <div id="deleteConfirmModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs hidden flex items-center justify-center p-4">
-        <div class="bg-softDark-card rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-softDark-border space-y-4">
-            <div class="text-center">
-                <div class="w-12 h-12 bg-rose-950/60 text-rose-400 border border-rose-800 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <i class="fa-solid fa-triangle-exclamation text-xl"></i>
-                </div>
-                <h3 class="text-base font-bold text-softDark-text">Hapus Tautan?</h3>
-                <p class="text-xs text-softDark-subtext mt-1">Tautan ini akan dihapus secara permanen dari database Google Sheets.</p>
-            </div>
-            <div class="flex justify-center space-x-3 pt-2">
-                <button onclick="closeDeleteModal()" class="px-4 py-2 text-xs font-medium text-softDark-subtext hover:text-white transition">Batal</button>
-                <button id="confirmDeleteBtn" onclick="executeDeleteLink()" class="px-4 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-500 rounded-xl transition shadow-md">Ya, Hapus Data</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- CLIENT SCRIPT LOGIC -->
-    <script>
-        // ==========================================
-        // KONFIGURASI UTAMA
-        // ==========================================
-        // MASUKKAN WEB APP URL DARI GOOGLE APPS SCRIPT ANDA DI SINI
-        const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbz62549uFue5is4S1ln5oF9MXWufTqh5qGV_YpQwLujHDtFAmW-1wFYr1A3w7ZANC5vTA/exec";
-        const LOCAL_CACHE_KEY = "portal_data_local_v2";
-
-        // APP STATE
-        let portalData = { categories: [], links: [] };
-        let activeCategory = 'ALL';
-        let activeSubMenu = 'ALL';
-        let currentUser = null; // { username, role, token }
-        let deleteTargetId = null;
-
-        // INIT APPLICATION - STRATEGI INSTANT LOAD
-        document.addEventListener('DOMContentLoaded', () => {
-            checkUserSession();
-            
-            // 1. Coba Muat Dari Cache Lokal Segera (0 Detik Load)
-            const hasLocalData = loadFromLocalCache();
-            
-            // 2. Jika ada cache lokal, render langsung tanpa overlay loading
-            if (hasLocalData) {
-                renderUIAll();
-                // Sinkronkan data terbaru dari server di latar belakang (Silent Refresh)
-                fetchPortalData(true);
-            } else {
-                // Jika belum ada cache sama sekali (pertama kali buka), tampilkan loading overlay
-                fetchPortalData(false);
-            }
+      try {
+        const res = await fetch(GAS_API_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'login', username: u, password: p })
         });
+        const json = await res.json();
 
-        // ------------------------------------------
-        // USER SESSION & MANDATORY ACCESS LOGIC
-        // ------------------------------------------
-        function checkUserSession() {
-            const saved = localStorage.getItem('portal_user_session');
-            if (saved) {
-                try {
-                    currentUser = JSON.parse(saved);
-                } catch(e) { currentUser = null; }
-            }
-            updateRoleUI();
+        if (json.status === 'success') {
+          currentUser = json.user;
+          closeLoginModal();
+          clearAppCache();
+          await fetchData(true);
+        } else {
+          alert(json.message);
         }
+      } catch (err) {
+        alert("Gagal melakukan login.");
+      } finally {
+        hideGlobalSpinner();
+      }
+    }
 
-        function isAdminRole() {
-            if (!currentUser || !currentUser.role) return false;
-            const r = String(currentUser.role).toLowerCase();
-            return r.includes('admin');
+    function openCrudModal(editItem = null, parentId = '') {
+      document.getElementById('formId').value = editItem ? editItem.id : '';
+      document.getElementById('formParentId').value = parentId;
+      document.getElementById('formTitle').value = editItem ? editItem.title : '';
+      document.getElementById('formVisibility').value = editItem ? editItem.visibility : 'UMUM';
+      document.getElementById('formType').value = editItem ? editItem.type : 'link';
+      document.getElementById('formIcon').value = editItem ? editItem.iconClass : 'fas fa-link';
+      document.getElementById('formUrl').value = editItem ? editItem.targetUrl : '#';
+      document.getElementById('formDesc').value = editItem ? editItem.description : '';
+      document.getElementById('crudModal').classList.remove('hidden');
+    }
+    function closeCrudModal() { document.getElementById('crudModal').classList.add('hidden'); }
+
+    async function executeSaveMenu(e) {
+      e.preventDefault();
+      showGlobalSpinner("Menyimpan Perubahan Menu...");
+
+      const payload = {
+        id: document.getElementById('formId').value,
+        parentId: document.getElementById('formParentId').value,
+        title: document.getElementById('formTitle').value,
+        visibility: document.getElementById('formVisibility').value,
+        type: document.getElementById('formType').value,
+        iconClass: document.getElementById('formIcon').value,
+        targetUrl: document.getElementById('formUrl').value,
+        description: document.getElementById('formDesc').value
+      };
+
+      try {
+        const res = await fetch(GAS_API_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'saveMenu', sessionUserId: currentUser.userId, payload })
+        });
+        const json = await res.json();
+
+        if (json.status === 'success') {
+          closeCrudModal();
+          clearAppCache();
+          await fetchData(true);
+        } else {
+          alert(json.message);
         }
+      } catch (err) {
+        alert("Gagal menyimpan menu.");
+      } finally {
+        hideGlobalSpinner();
+      }
+    }
 
-        function updateRoleUI() {
-            const guestLockScreen = document.getElementById('guestLockScreen');
-            const portalView = document.getElementById('portalView');
-            const adminView = document.getElementById('adminView');
-            const navMenu = document.getElementById('navMenu');
-            const tabAdminBtn = document.getElementById('tabAdminBtn');
-            const userBadge = document.getElementById('userBadge');
-            const roleDot = document.getElementById('roleDot');
-            const roleText = document.getElementById('roleText');
-            const authBtn = document.getElementById('authBtn');
+    async function deleteMenu(e, id) {
+      e.stopPropagation();
+      if (!confirm("Hapus menu ini beserta seluruh sub-menunya?")) return;
 
-            if (currentUser) {
-                // USER SUDAH LOGIN
-                guestLockScreen.classList.add('hidden');
-                navMenu.classList.remove('hidden');
-                userBadge.classList.remove('hidden');
-                userBadge.classList.add('flex');
+      showGlobalSpinner("Menghapus Menu...");
 
-                roleText.innerText = `${currentUser.username} (${currentUser.role})`;
-                authBtn.innerHTML = `<i class="fa-solid fa-right-from-bracket"></i> Logout`;
+      try {
+        const res = await fetch(GAS_API_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'deleteMenu', sessionUserId: currentUser.userId, id })
+        });
+        const json = await res.json();
 
-                if (isAdminRole()) {
-                    // ROLE ADMIN: Dapatkan akses full ke Portal + Panel Kelola Admin
-                    tabAdminBtn.classList.remove('hidden');
-                    roleDot.className = "w-2 h-2 rounded-full bg-teal-400 mr-2";
-                } else {
-                    // ROLE USER UMUM: Akses terbatas ke Portal Tautan saja
-                    tabAdminBtn.classList.add('hidden');
-                    roleDot.className = "w-2 h-2 rounded-full bg-cyan-400 mr-2";
-                    switchView('portal');
-                }
-
-                if (adminView.classList.contains('hidden')) {
-                    portalView.classList.remove('hidden');
-                }
-            } else {
-                // TAMU / BELUM LOGIN: KUNCI AKSES
-                guestLockScreen.classList.remove('hidden');
-                portalView.classList.add('hidden');
-                adminView.classList.add('hidden');
-                navMenu.classList.add('hidden');
-                userBadge.classList.add('hidden');
-                authBtn.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i> Login`;
-            }
+        if (json.status === 'success') {
+          clearAppCache();
+          await fetchData(true);
+        } else {
+          alert(json.message);
         }
+      } catch (err) {
+        alert("Gagal menghapus menu.");
+      } finally {
+        hideGlobalSpinner();
+      }
+    }
 
-        function handleAdminTabClick() {
-            if (isAdminRole()) {
-                switchView('admin');
-            } else {
-                showToast('Akses ditolak! Fitur ini khusus Role Admin.', 'error');
-            }
+    function editMenu(e, id) {
+      e.stopPropagation();
+      const item = findItemRecursive(rootMenus, id);
+      if (item) openCrudModal(item, item.parentId);
+    }
+
+    /* --- USER MANAGEMENT FUNCTIONS (MANUAL USER ID) --- */
+    async function openUserManagementModal() {
+      if (!currentUser || currentUser.role !== 'ADMIN') return;
+      document.getElementById('userManagementModal').classList.remove('hidden');
+      await fetchUsersData();
+    }
+    function closeUserManagementModal() { document.getElementById('userManagementModal').classList.add('hidden'); }
+
+    async function fetchUsersData() {
+      showGlobalSpinner("Memuat Data User...");
+      try {
+        const res = await fetch(`${GAS_API_URL}?action=getUsers&userId=${currentUser.userId}&role=${currentUser.role}`);
+        const json = await res.json();
+
+        if (json.status === 'success') {
+          usersList = json.data;
+          renderUserTable();
+        } else {
+          alert(json.message);
         }
+      } catch (err) {
+        alert("Gagal memuat data user.");
+      } finally {
+        hideGlobalSpinner();
+      }
+    }
 
-        function toggleAuthAction() {
-            if (currentUser) {
-                currentUser = null;
-                localStorage.removeItem('portal_user_session');
-                updateRoleUI();
-                showToast('Berhasil logout dari sistem.', 'success');
-            } else {
-                openLoginModal();
-            }
+    function renderUserTable() {
+      const tbody = document.getElementById('userTableBody');
+      tbody.innerHTML = usersList.map(u => `
+        <tr class="hover:bg-slate-800/50">
+          <td class="p-3 font-mono text-[10px] text-purple-300 font-bold">${u.userId}</td>
+          <td class="p-3 font-semibold text-slate-200">@${u.username}</td>
+          <td class="p-3 font-medium text-white">${u.fullName}</td>
+          <td class="p-3">
+            <span class="px-2 py-0.5 rounded text-[9px] font-bold ${u.role === 'ADMIN' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'}">
+              ${u.role}
+            </span>
+          </td>
+          <td class="p-3 text-center">
+            <div class="flex items-center justify-center space-x-1">
+              <button onclick="editUser('${u.userId}')" class="w-6 h-6 rounded bg-amber-500/20 text-amber-300 text-[10px] flex items-center justify-center hover:bg-amber-500/30"><i class="fas fa-pen"></i></button>
+              <button onclick="deleteUser('${u.userId}')" class="w-6 h-6 rounded bg-red-500/20 text-red-300 text-[10px] flex items-center justify-center hover:bg-red-500/30"><i class="fas fa-trash"></i></button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function openUserFormModal(editUserObj = null) {
+      const userIdInput = document.getElementById('userFormId');
+      const isEditInput = document.getElementById('userFormIsEdit');
+
+      if (editUserObj) {
+        document.getElementById('userFormTitle').innerText = "Edit Data User";
+        isEditInput.value = "true";
+        userIdInput.value = editUserObj.userId;
+        userIdInput.readOnly = true; // Kunci User_ID saat mode edit
+        userIdInput.classList.add('opacity-60', 'cursor-not-allowed');
+        document.getElementById('userIdHelp').innerText = "User ID tidak dapat diubah saat mode edit.";
+        
+        document.getElementById('userFormUsername').value = editUserObj.username;
+        document.getElementById('userFormPassword').value = editUserObj.password;
+        document.getElementById('userFormFullName').value = editUserObj.fullName;
+        document.getElementById('userFormRole').value = editUserObj.role;
+      } else {
+        document.getElementById('userFormTitle').innerText = "Tambah User Baru";
+        isEditInput.value = "false";
+        userIdInput.value = "";
+        userIdInput.readOnly = false; // Aktifkan input manual untuk user baru
+        userIdInput.classList.remove('opacity-60', 'cursor-not-allowed');
+        document.getElementById('userIdHelp').innerText = "ID unik untuk pengenal pemilik menu (contoh: USR-001).";
+
+        document.getElementById('userFormUsername').value = "";
+        document.getElementById('userFormPassword').value = "";
+        document.getElementById('userFormFullName').value = "";
+        document.getElementById('userFormRole').value = "USER_KHUSUS";
+      }
+
+      document.getElementById('userFormModal').classList.remove('hidden');
+    }
+    function closeUserFormModal() { document.getElementById('userFormModal').classList.add('hidden'); }
+
+    async function executeSaveUser(e) {
+      e.preventDefault();
+      showGlobalSpinner("Menyimpan User...");
+
+      const payload = {
+        isEditMode: document.getElementById('userFormIsEdit').value === "true",
+        userId: document.getElementById('userFormId').value.trim(),
+        username: document.getElementById('userFormUsername').value.trim(),
+        password: document.getElementById('userFormPassword').value,
+        fullName: document.getElementById('userFormFullName').value,
+        role: document.getElementById('userFormRole').value
+      };
+
+      try {
+        const res = await fetch(GAS_API_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'saveUser', sessionUserId: currentUser.userId, payload })
+        });
+        const json = await res.json();
+
+        if (json.status === 'success') {
+          closeUserFormModal();
+          await fetchUsersData();
+        } else {
+          alert(json.message);
         }
+      } catch (err) {
+        alert("Gagal menyimpan data user.");
+      } finally {
+        hideGlobalSpinner();
+      }
+    }
 
-        // ------------------------------------------
-        // LOCAL CACHE & FETCH DATA BACKEND
-        // ------------------------------------------
-        function loadFromLocalCache() {
-            try {
-                const cached = localStorage.getItem(LOCAL_CACHE_KEY);
-                if (cached) {
-                    const parsed = JSON.parse(cached);
-                    if (parsed && parsed.categories && parsed.links) {
-                        portalData = parsed;
-                        return true;
-                    }
-                }
-            } catch(e) {}
-            return false;
+    function editUser(userId) {
+      const targetUser = usersList.find(u => u.userId === userId);
+      if (targetUser) openUserFormModal(targetUser);
+    }
+
+    async function deleteUser(targetUserId) {
+      if (!confirm(`Hapus akun user ini (${targetUserId})?`)) return;
+
+      showGlobalSpinner("Menghapus User...");
+
+      try {
+        const res = await fetch(GAS_API_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'deleteUser', sessionUserId: currentUser.userId, targetUserId })
+        });
+        const json = await res.json();
+
+        if (json.status === 'success') {
+          await fetchUsersData();
+        } else {
+          alert(json.message);
         }
+      } catch (err) {
+        alert("Gagal menghapus user.");
+      } finally {
+        hideGlobalSpinner();
+      }
+    }
 
-        function saveToLocalCache(data) {
-            try {
-                localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify(data));
-            } catch(e) {}
+    function findItemRecursive(list, id) {
+      for (const item of list) {
+        if (item.id === id) return item;
+        if (item.submenus && item.submenus.length > 0) {
+          const found = findItemRecursive(item.submenus, id);
+          if (found) return found;
         }
-
-        async function fetchPortalData(silent = false) {
-            if (!silent) showLoading(true);
-
-            try {
-                const res = await fetch(GAS_WEB_APP_URL + "?action=getPortalData");
-                const data = await res.json();
-                
-                if (data.status === 'success') {
-                    portalData = data;
-                    saveToLocalCache(data);
-                    renderUIAll();
-                } else if (!silent) {
-                    showToast(data.message || 'Gagal memuat data dari spreadsheet.', 'error');
-                }
-            } catch (err) {
-                if (!silent) showToast('Gagal terhubung ke API GAS.', 'error');
-            } finally {
-                if (!silent) showLoading(false);
-            }
-        }
-
-        function renderUIAll() {
-            renderCategories();
-            renderSubMenus();
-            renderLinks();
-            populateCategoryDropdowns();
-            if (isAdminRole()) renderAdminTable();
-        }
-
-        // ------------------------------------------
-        // RENDER PORTAL FE
-        // ------------------------------------------
-        function renderCategories() {
-            const container = document.getElementById('categoryPills');
-            let html = `
-                <button onclick="selectCategory('ALL')" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition ${activeCategory === 'ALL' ? 'bg-teal-600 text-white shadow-md' : 'bg-softDark-card text-softDark-subtext hover:text-white border border-softDark-border'}">
-                    <i class="fa-solid fa-border-all mr-1.5"></i>Semua Kategori
-                </button>
-            `;
-
-            portalData.categories.forEach(cat => {
-                const isActive = activeCategory === String(cat.Category_ID);
-                html += `
-                    <button onclick="selectCategory('${cat.Category_ID}')" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition ${isActive ? 'bg-teal-600 text-white shadow-md' : 'bg-softDark-card text-softDark-subtext hover:text-white border border-softDark-border'}">
-                        <i class="fa-solid ${cat.Icon || 'fa-folder'} mr-1.5 text-teal-400"></i>${cat.Category_Name}
-                    </button>
-                `;
-            });
-            container.innerHTML = html;
-        }
-
-        function selectCategory(catId) {
-            activeCategory = catId;
-            activeSubMenu = 'ALL';
-            renderCategories();
-            renderSubMenus();
-            renderLinks();
-        }
-
-        function renderSubMenus() {
-            const container = document.getElementById('subMenuPills');
-            const subMenuWrapper = document.getElementById('subMenuContainer');
-
-            let filteredLinks = portalData.links;
-            if (activeCategory !== 'ALL') {
-                filteredLinks = portalData.links.filter(l => String(l.Category_ID) === activeCategory);
-            }
-
-            const subMenus = [...new Set(filteredLinks.map(l => l.Sub_Menu || 'Umum'))].filter(Boolean);
-
-            if (subMenus.length === 0) {
-                subMenuWrapper.classList.add('hidden');
-                return;
-            }
-            subMenuWrapper.classList.remove('hidden');
-
-            let html = `
-                <button onclick="selectSubMenu('ALL')" class="px-3 py-1 rounded-lg text-[11px] font-medium whitespace-nowrap transition ${activeSubMenu === 'ALL' ? 'bg-cyan-600 text-white shadow-xs' : 'bg-softDark-card text-softDark-subtext border border-softDark-border'}">
-                    Semua Sub-Menu
-                </button>
-            `;
-
-            subMenus.forEach(sub => {
-                const isActive = activeSubMenu === sub;
-                html += `
-                    <button onclick="selectSubMenu('${sub}')" class="px-3 py-1 rounded-lg text-[11px] font-medium whitespace-nowrap transition ${isActive ? 'bg-cyan-600 text-white shadow-xs' : 'bg-softDark-card text-softDark-subtext border border-softDark-border'}">
-                        ${sub}
-                    </button>
-                `;
-            });
-            container.innerHTML = html;
-        }
-
-        function selectSubMenu(sub) {
-            activeSubMenu = sub;
-            renderSubMenus();
-            renderLinks();
-        }
-
-        function renderLinks() {
-            const grid = document.getElementById('linksGrid');
-            const emptyState = document.getElementById('emptyPortalState');
-            const keyword = document.getElementById('searchInput').value.toLowerCase().trim();
-
-            let items = portalData.links;
-
-            if (activeCategory !== 'ALL') {
-                items = items.filter(l => String(l.Category_ID) === activeCategory);
-            }
-
-            if (activeSubMenu !== 'ALL') {
-                items = items.filter(l => (l.Sub_Menu || 'Umum') === activeSubMenu);
-            }
-
-            if (keyword) {
-                items = items.filter(l => 
-                    (l.Title && l.Title.toLowerCase().includes(keyword)) ||
-                    (l.Sub_Menu && l.Sub_Menu.toLowerCase().includes(keyword)) ||
-                    (l.Description && l.Description.toLowerCase().includes(keyword))
-                );
-            }
-
-            if (items.length === 0) {
-                grid.innerHTML = '';
-                emptyState.classList.remove('hidden');
-                return;
-            }
-
-            emptyState.classList.add('hidden');
-            let html = '';
-
-            items.forEach(item => {
-                const cat = portalData.categories.find(c => String(c.Category_ID) === String(item.Category_ID));
-                const catName = cat ? cat.Category_Name : 'Umum';
-
-                html += `
-                    <div class="bg-softDark-card border border-softDark-border p-5 rounded-2xl shadow-md hover:border-teal-500/50 hover:shadow-teal-500/10 transition group flex flex-col justify-between">
-                        <div>
-                            <div class="flex justify-between items-start mb-2 gap-2">
-                                <span class="px-2.5 py-0.5 rounded-md text-[10px] font-semibold bg-teal-950/80 text-teal-300 border border-teal-800/60">
-                                    <i class="fa-solid fa-folder text-teal-400 mr-1"></i>${catName}
-                                </span>
-                                ${item.Badge ? `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-950/80 text-amber-300 border border-amber-800/60">${item.Badge}</span>` : ''}
-                            </div>
-                            <h3 class="font-bold text-sm text-softDark-text group-hover:text-teal-400 transition leading-snug">${item.Title}</h3>
-                            <p class="text-xs text-cyan-400/90 font-medium mt-1">
-                                <i class="fa-solid fa-diagram-subgroup mr-1 text-[10px]"></i>Sub-Menu: ${item.Sub_Menu || 'Umum'}
-                            </p>
-                            <p class="text-xs text-softDark-subtext mt-2 line-clamp-2">${item.Description || 'Tidak ada deskripsi.'}</p>
-                        </div>
-                        <div class="mt-5 pt-3 border-t border-softDark-border flex items-center justify-between">
-                            <a href="${item.URL}" target="_blank" rel="noopener noreferrer" class="w-full py-2 bg-softDark-bg hover:bg-teal-600 hover:text-white text-softDark-text text-xs font-semibold rounded-xl border border-softDark-border transition text-center flex items-center justify-center gap-1.5 shadow-xs">
-                                <span>Buka Tautan</span>
-                                <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
-                            </a>
-                        </div>
-                    </div>
-                `;
-            });
-
-            grid.innerHTML = html;
-        }
-
-        // ------------------------------------------
-        // RENDER ADMIN TABLE (ADMIN ONLY)
-        // ------------------------------------------
-        function populateCategoryDropdowns() {
-            const formCat = document.getElementById('formCategory');
-            const adminFilter = document.getElementById('adminCategoryFilter');
-
-            let optionsHtml = '<option value="">-- Pilih Kategori --</option>';
-            let filterHtml = '<option value="ALL">Semua Kategori</option>';
-
-            portalData.categories.forEach(c => {
-                optionsHtml += `<option value="${c.Category_ID}">${c.Category_Name}</option>`;
-                filterHtml += `<option value="${c.Category_ID}">${c.Category_Name}</option>`;
-            });
-
-            if (formCat) formCat.innerHTML = optionsHtml;
-            if (adminFilter) adminFilter.innerHTML = filterHtml;
-        }
-
-        function renderAdminTable() {
-            if (!isAdminRole()) return;
-
-            const tbody = document.getElementById('adminTableBody');
-            const searchVal = document.getElementById('adminSearchInput').value.toLowerCase().trim();
-            const catFilter = document.getElementById('adminCategoryFilter').value;
-            const totalBadge = document.getElementById('totalLinkBadge');
-
-            let items = portalData.links;
-
-            if (catFilter !== 'ALL') {
-                items = items.filter(l => String(l.Category_ID) === catFilter);
-            }
-
-            if (searchVal) {
-                items = items.filter(l => 
-                    (l.Title && l.Title.toLowerCase().includes(searchVal)) ||
-                    (l.Sub_Menu && l.Sub_Menu.toLowerCase().includes(searchVal)) ||
-                    (l.URL && l.URL.toLowerCase().includes(searchVal))
-                );
-            }
-
-            totalBadge.innerText = `${items.length} Data`;
-
-            if (items.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-softDark-subtext">Belum ada data tautan.</td></tr>`;
-                return;
-            }
-
-            let html = '';
-            items.forEach(item => {
-                const cat = portalData.categories.find(c => String(c.Category_ID) === String(item.Category_ID));
-                const catName = cat ? cat.Category_Name : '-';
-
-                html += `
-                    <tr class="hover:bg-softDark-bg/40 transition">
-                        <td class="p-4 font-semibold text-softDark-text">${item.Title}</td>
-                        <td class="p-4 text-softDark-subtext">${catName}</td>
-                        <td class="p-4 text-teal-400 font-medium">${item.Sub_Menu || 'Umum'}</td>
-                        <td class="p-4"><a href="${item.URL}" target="_blank" class="text-cyan-400 hover:underline truncate max-w-xs block">${item.URL}</a></td>
-                        <td class="p-4">${item.Badge ? `<span class="px-2 py-0.5 rounded bg-amber-950/80 text-amber-300 border border-amber-800 text-[10px] font-bold">${item.Badge}</span>` : '-'}</td>
-                        <td class="p-4 text-center">
-                            <div class="flex justify-center space-x-1.5">
-                                <button onclick="editLink('${item.Link_ID}')" class="p-1.5 bg-softDark-bg hover:bg-teal-600 text-softDark-text hover:text-white rounded-lg border border-softDark-border transition" title="Edit">
-                                    <i class="fa-solid fa-pen-to-square text-xs"></i>
-                                </button>
-                                <button onclick="openDeleteModal('${item.Link_ID}')" class="p-1.5 bg-softDark-bg hover:bg-rose-600 text-softDark-text hover:text-white rounded-lg border border-softDark-border transition" title="Hapus">
-                                    <i class="fa-solid fa-trash text-xs"></i>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            });
-
-            tbody.innerHTML = html;
-        }
-
-        // ------------------------------------------
-        // HANDLERS LOGIN WITH SPINNER LOADING
-        // ------------------------------------------
-        async function handleLoginSubmit(e) {
-            e.preventDefault();
-            const u = document.getElementById('loginUsername').value;
-            const p = document.getElementById('loginPassword').value;
-            const errDiv = document.getElementById('loginError');
-            const submitBtn = document.getElementById('submitLoginBtn');
-
-            errDiv.classList.add('hidden');
-            
-            // Tampilkan SPINNER LOADING pada tombol login
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin text-sm"></i><span>Memverifikasi...</span>`;
-
-            try {
-                const res = await fetch(GAS_WEB_APP_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'login', username: u, password: p })
-                });
-                const data = await res.json();
-
-                if (data.status === 'success') {
-                    currentUser = { username: data.username, role: data.role, token: data.token };
-                    localStorage.setItem('portal_user_session', JSON.stringify(currentUser));
-                    closeLoginModal();
-                    updateRoleUI();
-                    showToast(`Selamat datang, ${data.username}! (${data.role})`, 'success');
-                } else {
-                    errDiv.innerText = data.message || 'Username atau Password salah.';
-                    errDiv.classList.remove('hidden');
-                }
-            } catch (err) {
-                errDiv.innerText = 'Gagal menghubungi server backend.';
-                errDiv.classList.remove('hidden');
-            } finally {
-                // Kembalikan status tombol login
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = `<span>Masuk & Autentikasi</span>`;
-            }
-        }
-
-        async function handleSaveLink(e) {
-            e.preventDefault();
-            if (!isAdminRole()) return;
-
-            const linkData = {
-                Link_ID: document.getElementById('formLinkId').value,
-                Title: document.getElementById('formTitle').value,
-                Category_ID: document.getElementById('formCategory').value,
-                Sub_Menu: document.getElementById('formSubMenu').value,
-                URL: document.getElementById('formUrl').value,
-                Description: document.getElementById('formDescription').value,
-                Badge: document.getElementById('formBadge').value
-            };
-
-            showLoading(true);
-            try {
-                const res = await fetch(GAS_WEB_APP_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'saveLink', linkData: linkData })
-                });
-                const data = await res.json();
-
-                if (data.status === 'success') {
-                    closeLinkModal();
-                    showToast('Tautan berhasil disimpan!', 'success');
-                    await fetchPortalData(false);
-                } else {
-                    showToast(data.message || 'Gagal menyimpan tautan.', 'error');
-                }
-            } catch (err) {
-                showToast('Error koneksi saat menyimpan.', 'error');
-            } finally {
-                showLoading(false);
-            }
-        }
-
-        function editLink(linkId) {
-            const item = portalData.links.find(l => String(l.Link_ID) === String(linkId));
-            if (!item) return;
-
-            document.getElementById('modalLinkTitle').innerText = 'Edit Hyperlink';
-            document.getElementById('formLinkId').value = item.Link_ID;
-            document.getElementById('formTitle').value = item.Title;
-            document.getElementById('formCategory').value = item.Category_ID;
-            document.getElementById('formSubMenu').value = item.Sub_Menu || '';
-            document.getElementById('formUrl').value = item.URL;
-            document.getElementById('formDescription').value = item.Description || '';
-            document.getElementById('formBadge').value = item.Badge || '';
-
-            document.getElementById('linkModal').classList.remove('hidden');
-        }
-
-        function openLinkModal() {
-            document.getElementById('modalLinkTitle').innerText = 'Tambah Hyperlink Baru';
-            document.getElementById('linkForm').reset();
-            document.getElementById('formLinkId').value = '';
-            document.getElementById('linkModal').classList.remove('hidden');
-        }
-
-        function closeLinkModal() { document.getElementById('linkModal').classList.add('hidden'); }
-
-        function openLoginModal() { document.getElementById('loginModal').classList.remove('hidden'); }
-        function closeLoginModal() { 
-            document.getElementById('loginModal').classList.add('hidden'); 
-            document.getElementById('loginError').classList.add('hidden');
-        }
-
-        function openCategoryModal() {
-            renderCategoryManagerList();
-            document.getElementById('categoryModal').classList.remove('hidden');
-        }
-        function closeCategoryModal() { document.getElementById('categoryModal').classList.add('hidden'); }
-
-        function renderCategoryManagerList() {
-            const container = document.getElementById('categoryListContainer');
-            let html = '';
-
-            portalData.categories.forEach(c => {
-                html += `
-                    <div class="flex items-center justify-between p-2.5 bg-softDark-bg rounded-xl border border-softDark-border text-xs">
-                        <div>
-                            <span class="font-bold text-softDark-text"><i class="fa-solid ${c.Icon || 'fa-folder'} text-teal-400 mr-1.5"></i>${c.Category_Name}</span>
-                            <p class="text-[10px] text-softDark-subtext">${c.Description || 'Tanpa deskripsi'}</p>
-                        </div>
-                        <span class="text-[10px] text-slate-500 font-mono">${c.Category_ID}</span>
-                    </div>
-                `;
-            });
-            container.innerHTML = html;
-        }
-
-        async function handleAddCategory(e) {
-            e.preventDefault();
-            if (!isAdminRole()) return;
-
-            const name = document.getElementById('newCatName').value;
-            const desc = document.getElementById('newCatDesc').value;
-
-            showLoading(true);
-            try {
-                const res = await fetch(GAS_WEB_APP_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        action: 'saveCategory',
-                        catData: { Category_Name: name, Description: desc, Icon: 'fa-folder' }
-                    })
-                });
-                const data = await res.json();
-
-                if (data.status === 'success') {
-                    document.getElementById('newCatName').value = '';
-                    document.getElementById('newCatDesc').value = '';
-                    showToast('Kategori baru berhasil ditambahkan!', 'success');
-                    await fetchPortalData(false);
-                    renderCategoryManagerList();
-                } else {
-                    showToast(data.message || 'Gagal membuat kategori.', 'error');
-                }
-            } catch (err) {
-                showToast('Error koneksi saat menyimpan kategori.', 'error');
-            } finally {
-                showLoading(false);
-            }
-        }
-
-        function openDeleteModal(linkId) {
-            deleteTargetId = linkId;
-            document.getElementById('deleteConfirmModal').classList.remove('hidden');
-        }
-        function closeDeleteModal() {
-            deleteTargetId = null;
-            document.getElementById('deleteConfirmModal').classList.add('hidden');
-        }
-
-        async function executeDeleteLink() {
-            if (!deleteTargetId || !isAdminRole()) return;
-
-            showLoading(true);
-            try {
-                const res = await fetch(GAS_WEB_APP_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'deleteLink', linkId: deleteTargetId })
-                });
-                const data = await res.json();
-
-                if (data.status === 'success') {
-                    closeDeleteModal();
-                    showToast('Tautan berhasil dihapus.', 'success');
-                    await fetchPortalData(false);
-                } else {
-                    showToast(data.message || 'Gagal menghapus tautan.', 'error');
-                }
-            } catch (err) {
-                showToast('Error koneksi saat menghapus.', 'error');
-            } finally {
-                showLoading(false);
-            }
-        }
-
-        // ------------------------------------------
-        // UTILITY UI FUNCTIONS
-        // ------------------------------------------
-        function switchView(view) {
-            const portalView = document.getElementById('portalView');
-            const adminView = document.getElementById('adminView');
-            const tabPortalBtn = document.getElementById('tabPortalBtn');
-            const tabAdminBtn = document.getElementById('tabAdminBtn');
-
-            if (view === 'admin') {
-                if (!isAdminRole()) return;
-                portalView.classList.add('hidden');
-                adminView.classList.remove('hidden');
-
-                tabAdminBtn.className = "px-3 sm:px-4 py-1.5 text-xs font-semibold rounded-lg bg-softDark-card text-teal-400 shadow-xs transition";
-                tabPortalBtn.className = "px-3 sm:px-4 py-1.5 text-xs font-semibold rounded-lg text-softDark-subtext hover:text-white transition";
-                renderAdminTable();
-            } else {
-                portalView.classList.remove('hidden');
-                adminView.classList.add('hidden');
-
-                tabPortalBtn.className = "px-3 sm:px-4 py-1.5 text-xs font-semibold rounded-lg bg-softDark-card text-teal-400 shadow-xs transition";
-                tabAdminBtn.className = "px-3 sm:px-4 py-1.5 text-xs font-semibold rounded-lg text-softDark-subtext hover:text-white transition";
-                renderLinks();
-            }
-        }
-
-        function showLoading(isLoading) {
-            const overlay = document.getElementById('loadingOverlay');
-            if (isLoading) overlay.classList.remove('hidden');
-            else overlay.classList.add('hidden');
-        }
-
-        function showToast(message, type = 'info') {
-            const container = document.getElementById('toastContainer');
-            const toast = document.createElement('div');
-            
-            let bgClass = "bg-slate-800 text-white border-slate-700";
-            let icon = "fa-circle-info text-cyan-400";
-
-            if (type === 'success') {
-                bgClass = "bg-slate-900 text-white border-teal-500/50";
-                icon = "fa-circle-check text-teal-400";
-            } else if (type === 'error') {
-                bgClass = "bg-slate-900 text-white border-rose-500/50";
-                icon = "fa-circle-xmark text-rose-400";
-            }
-
-            toast.className = `pointer-events-auto flex items-center space-x-2.5 px-4 py-3 rounded-xl border text-xs shadow-xl transition-all duration-300 transform translate-y-2 opacity-0 ${bgClass}`;
-            toast.innerHTML = `<i class="fa-solid ${icon} text-sm"></i><span>${message}</span>`;
-
-            container.appendChild(toast);
-
-            setTimeout(() => {
-                toast.classList.remove('translate-y-2', 'opacity-0');
-            }, 10);
-
-            setTimeout(() => {
-                toast.classList.add('opacity-0', 'translate-y-2');
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
-        }
-    </script>
-</div>
+      }
+      return null;
+    }
+  </script>
+</body>
+</html>
