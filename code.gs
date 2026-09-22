@@ -1,296 +1,413 @@
 /**
- * HIGH-PERFORMANCE BACKEND ENGINE WITH MANUAL USER ID - GAS-Bloger V2 II
+ * ==============================================================================
+ * PORTAL DMS BACKEND ENGINE (Google Apps Script)
+ * Versi: 2.0
+ * Deskripsi: Script ini bertindak sebagai API Server untuk Portal DMS Blogger/Frontend.
+ * ==============================================================================
  */
 
-const SPREADSHEET_ID = SpreadsheetApp.getActiveSpreadsheet().getId();
-const SHEET_MENUS = "DB_MENUS";
-const SHEET_USERS = "DB_USERS";
+// Nama-nama Tab Sheet di Google Sheets
+const SHEET_MENUS = "Menus";
+const SHEET_USERS = "Users";
 
-function createJsonResponse(data) {
-  return ContentService.createTextOutput(JSON.stringify(data))
-    .setMimeType(ContentService.MimeType.JSON);
-}
+// Header untuk Tab Menus
+const MENUS_HEADERS = [
+  "id",
+  "parentId",
+  "title",
+  "category",
+  "visibility",
+  "type",
+  "iconClass",
+  "targetUrl",
+  "description",
+  "ownerUserId"
+];
 
+// Header untuk Tab Users
+const USERS_HEADERS = [
+  "userId",
+  "username",
+  "password",
+  "fullName",
+  "role"
+];
+
+/**
+ * Handler Request HTTP GET
+ * Menangani pengambilan data menu dan daftar pengguna
+ */
 function doGet(e) {
-  const action = e.parameter.action || "getMenus";
-  const userId = e.parameter.userId || "PUBLIC";
-  const role = e.parameter.role || "UMUM";
-
   try {
+    ensureSheetsExist();
+    
+    const params = e.parameter || {};
+    const action = params.action || "getMenus";
+    
+    let result = { status: "error", message: "Aksi GET tidak dikenal" };
+
     if (action === "getMenus") {
-      const data = getMenusHierarchicalOptimized(userId, role);
-      return createJsonResponse({ status: "success", data: data });
-    }
+      const userId = params.userId || "PUBLIC";
+      const role = params.role || "UMUM";
+      const menus = fetchFilteredMenuTree(userId, role);
+      result = { status: "success", data: menus };
+    } 
     else if (action === "getUsers") {
-      if (role !== "ADMIN") throw new Error("Akses Ditolak: Hanya ADMIN yang berhak mengelola user.");
-      const users = getUsersList();
-      return createJsonResponse({ status: "success", data: users });
+      const users = fetchAllUsers();
+      result = { status: "success", data: users };
     }
-    return createJsonResponse({ status: "error", message: "Action doGet tidak dikenal." });
-  } catch (err) {
-    return createJsonResponse({ status: "error", message: err.toString() });
+
+    return createJsonResponse(result);
+  } catch (error) {
+    return createJsonResponse({ status: "error", message: error.toString() });
   }
 }
 
+/**
+ * Handler Request HTTP POST
+ * Menangani Login, Simpan/Edit Menu, Hapus Menu, Simpan User, Hapus User
+ */
 function doPost(e) {
   try {
-    const postData = JSON.parse(e.postData.contents);
-    const action = postData.action;
+    ensureSheetsExist();
 
-    if (action === "login") {
-      const auth = authenticateUser(postData.username, postData.password);
-      return createJsonResponse(auth);
+    let postData = {};
+    if (e.postData && e.postData.contents) {
+      postData = JSON.parse(e.postData.contents);
     }
 
-    const authCheck = validateSession(postData.sessionUserId);
-    if (!authCheck.valid) {
-      return createJsonResponse({ status: "error", message: "Sesi kadaluarsa. Silakan login kembali." });
-    }
+    const action = postData.action || "";
+    let result = { status: "error", message: "Aksi POST tidak dikenal" };
 
-    const sessionUser = authCheck.user;
-
-    // --- FITUR MENU MANAGEMENT ---
-    if (action === "saveMenu") {
-      if (sessionUser.role === "USER_KHUSUS") {
-        if (postData.payload.id) checkOwnership(postData.payload.id, sessionUser.userId);
-        postData.payload.ownerUserId = sessionUser.userId;
-      } else if (sessionUser.role === "ADMIN") {
-        postData.payload.ownerUserId = postData.payload.ownerUserId || sessionUser.userId;
-      }
-
-      const result = saveOrUpdateMenu(postData.payload);
-      return createJsonResponse({ status: "success", data: result });
-    } 
-    else if (action === "deleteMenu") {
-      if (sessionUser.role === "USER_KHUSUS") checkOwnership(postData.id, sessionUser.userId);
-      deleteMenuRecursive(postData.id);
-      return createJsonResponse({ status: "success", message: "Menu berhasil dihapus." });
-    }
-
-    // --- FITUR USER MANAGEMENT (KHUSUS ADMIN) ---
-    else if (action === "saveUser") {
-      if (sessionUser.role !== "ADMIN") throw new Error("Akses Ditolak: Fitur ini khusus ADMIN.");
-      const result = saveOrUpdateUser(postData.payload);
-      return createJsonResponse({ status: "success", data: result });
-    }
-    else if (action === "deleteUser") {
-      if (sessionUser.role !== "ADMIN") throw new Error("Akses Ditolak: Fitur ini khusus ADMIN.");
-      if (sessionUser.userId === postData.targetUserId) throw new Error("Ditolak: Anda tidak dapat menghapus akun Anda sendiri yang sedang aktif.");
-      deleteUserRecord(postData.targetUserId);
-      return createJsonResponse({ status: "success", message: "User berhasil dihapus." });
-    }
-
-    return createJsonResponse({ status: "error", message: "Action doPost tidak dikenal." });
-  } catch (err) {
-    return createJsonResponse({ status: "error", message: err.toString() });
-  }
-}
-
-// In-Memory Fast Reading for Menus
-function getMenusHierarchicalOptimized(userId, role) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const rows = ss.getSheetByName(SHEET_MENUS).getDataRange().getValues();
-  if (rows.length <= 1) return [];
-
-  const rawList = [];
-  const len = rows.length;
-
-  for (let i = 1; i < len; i++) {
-    const r = rows[i];
-    if (!r[0]) continue;
-
-    const ownerUserId = String(r[8] || "PUBLIC");
-    const visibility = String(r[9] || "UMUM");
-
-    let visible = false;
-    if (visibility === "UMUM") {
-      visible = true;
-    } else if (visibility === "PRIVASI") {
-      if (userId !== "PUBLIC" && ownerUserId === userId) visible = true;
-    } else if (visibility === "PRIVASI_ADMIN") {
-      if (role === "ADMIN" || (userId !== "PUBLIC" && ownerUserId === userId)) visible = true;
-    }
-
-    if (visible) {
-      rawList.push({
-        id: String(r[0]), parentId: String(r[1] || ""), title: String(r[2] || ""),
-        category: String(r[3] || "Umum"), type: String(r[4] || "link"),
-        iconClass: String(r[5] || "fas fa-link"), targetUrl: String(r[6] || "#"),
-        description: String(r[7] || ""), ownerUserId: ownerUserId, visibility: visibility, submenus: []
-      });
-    }
-  }
-
-  const map = {};
-  const tree = [];
-  for (let i = 0; i < rawList.length; i++) map[rawList[i].id] = rawList[i];
-  for (let i = 0; i < rawList.length; i++) {
-    const item = rawList[i];
-    if (item.parentId && map[item.parentId]) {
-      map[item.parentId].submenus.push(item);
-      if (map[item.parentId].type !== "folder") map[item.parentId].type = "folder";
-    } else {
-      tree.push(item);
-    }
-  }
-  return tree;
-}
-
-function authenticateUser(username, password) {
-  const rows = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_USERS).getDataRange().getValues();
-  for (let i = 1; i < rows.length; i++) {
-    if (String(rows[i][1]) === String(username) && String(rows[i][2]) === String(password)) {
-      return {
-        status: "success",
-        user: { userId: String(rows[i][0]), username: String(rows[i][1]), fullName: String(rows[i][3]), role: String(rows[i][4]) }
-      };
-    }
-  }
-  return { status: "error", message: "Username atau Password tidak valid." };
-}
-
-function validateSession(userId) {
-  if (!userId) return { valid: false };
-  const rows = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_USERS).getDataRange().getValues();
-  for (let i = 1; i < rows.length; i++) {
-    if (String(rows[i][0]) === String(userId)) {
-      return {
-        valid: true,
-        user: { userId: String(rows[i][0]), username: String(rows[i][1]), fullName: String(rows[i][3]), role: String(rows[i][4]) }
-      };
-    }
-  }
-  return { valid: false };
-}
-
-function checkOwnership(menuId, userId) {
-  const rows = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_MENUS).getDataRange().getValues();
-  for (let i = 1; i < rows.length; i++) {
-    if (String(rows[i][0]) === String(menuId)) {
-      if (String(rows[i][8] || "PUBLIC") !== userId) throw new Error("Akses Ditolak: Anda bukan pemilik menu ini.");
-      return;
-    }
-  }
-}
-
-function saveOrUpdateMenu(payload) {
-  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_MENUS);
-  const rows = sheet.getDataRange().getValues();
-  let targetRowIndex = -1;
-
-  if (payload.id) {
-    for (let i = 1; i < rows.length; i++) {
-      if (String(rows[i][0]) === String(payload.id)) {
-        targetRowIndex = i + 1;
+    switch (action) {
+      case "login":
+        result = processLogin(postData.username, postData.password);
         break;
-      }
+
+      case "saveMenu":
+        result = processSaveMenu(postData);
+        break;
+
+      case "deleteMenu":
+        result = processDeleteMenu(postData.id, postData.userId, postData.role);
+        break;
+
+      case "saveUser":
+        result = processSaveUser(postData);
+        break;
+
+      case "deleteUser":
+        result = processDeleteUser(postData.userId);
+        break;
+
+      default:
+        result = { status: "error", message: `Aksi '${action}' tidak didukung` };
+        break;
+    }
+
+    return createJsonResponse(result);
+  } catch (error) {
+    return createJsonResponse({ status: "error", message: error.toString() });
+  }
+}
+
+/**
+ * Mengambil dan menyusun hirarki menu bertingkat (Tree) dengan filter visibilitas
+ */
+function fetchFilteredMenuTree(userId, role) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_MENUS);
+  const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return []; // Hanya ada header
+
+  const headers = data[0];
+  const rawMenus = [];
+
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    if (!row[0]) continue; // Lewati jika ID kosong
+
+    const menu = {
+      id: String(row[0]),
+      parentId: String(row[1] || ""),
+      title: String(row[2] || ""),
+      category: String(row[3] || "General"),
+      visibility: String(row[4] || "UMUM"),
+      type: String(row[5] || "link"),
+      iconClass: String(row[6] || "fas fa-link"),
+      targetUrl: String(row[7] || "#"),
+      description: String(row[8] || ""),
+      ownerUserId: String(row[9] || "PUBLIC")
+    };
+
+    // Filter Visibilitas Akses
+    if (canUserAccessMenu(menu, userId, role)) {
+      rawMenus.push(menu);
     }
   }
 
-  const recordId = payload.id ? payload.id : "MENU-" + Date.now();
-  const rowData = [
-    recordId, payload.parentId || "", payload.title, payload.category || "Umum",
-    payload.type || "link", payload.iconClass || "fas fa-link", payload.targetUrl || "#",
-    payload.description || "", payload.ownerUserId || "PUBLIC", payload.visibility || "UMUM",
-    new Date().toISOString()
-  ];
+  return buildMenuTree(rawMenus, "");
+}
 
-  if (targetRowIndex > 0) {
-    sheet.getRange(targetRowIndex, 1, 1, rowData.length).setValues([rowData]);
+/**
+ * Mengecek apakah pengguna berhak melihat menu tertentu
+ */
+function canUserAccessMenu(menu, userId, role) {
+  // Admin selalu bisa melihat semua menu
+  if (role === "ADMIN") return true;
+
+  // Visibilitas UMUM dapat dilihat siapa saja
+  if (menu.visibility === "UMUM") return true;
+
+  // Visibilitas PRIVASI hanya untuk pemilik menu
+  if (menu.visibility === "PRIVASI") {
+    return userId !== "PUBLIC" && menu.ownerUserId === userId;
+  }
+
+  // Visibilitas PRIVASI_ADMIN untuk pemilik menu atau Admin
+  if (menu.visibility === "PRIVASI_ADMIN") {
+    return (userId !== "PUBLIC" && menu.ownerUserId === userId) || role === "ADMIN";
+  }
+
+  return false;
+}
+
+/**
+ * Menyusun data array datar menjadi struktur pohon (Parent-Submenu)
+ */
+function buildMenuTree(items, parentId) {
+  const branch = [];
+
+  items.forEach(item => {
+    if (item.parentId === parentId || (parentId === "" && (!item.parentId || item.parentId === "ROOT"))) {
+      const children = buildMenuTree(items, item.id);
+      if (children.length > 0) {
+        item.submenus = children;
+      } else {
+        item.submenus = [];
+      }
+      branch.push(item);
+    }
+  });
+
+  return branch;
+}
+
+/**
+ * Menyimpan atau memperbarui data menu
+ */
+function processSaveMenu(payload) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_MENUS);
+  const data = sheet.getDataRange().getValues();
+
+  const id = payload.id ? String(payload.id) : "MNU-" + Date.now();
+  const parentId = payload.parentId ? String(payload.parentId) : "";
+  const title = payload.title || "Menu Baru";
+  const category = payload.category || "General";
+  const visibility = payload.visibility || "UMUM";
+  const type = payload.type || "link";
+  const iconClass = payload.iconClass || "fas fa-link";
+  const targetUrl = payload.targetUrl || "#";
+  const description = payload.description || "";
+  const ownerUserId = payload.ownerUserId || "PUBLIC";
+
+  let rowIndex = -1;
+
+  // Cari baris jika ID sudah ada (Update)
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === id) {
+      rowIndex = i + 1;
+      break;
+    }
+  }
+
+  const rowData = [id, parentId, title, category, visibility, type, iconClass, targetUrl, description, ownerUserId];
+
+  if (rowIndex > 0) {
+    // Update Baris
+    sheet.getRange(rowIndex, 1, 1, rowData.length).setValues([rowData]);
   } else {
+    // Tambah Baris Baru
     sheet.appendRow(rowData);
   }
-  return { id: recordId };
+
+  return { status: "success", message: "Menu berhasil disimpan", id: id };
 }
 
-function deleteMenuRecursive(targetId) {
-  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_MENUS);
-  const rows = sheet.getDataRange().getValues();
-  if (rows.length <= 1) return;
+/**
+ * Menghapus menu beserta sub-menu bawaannya secara rekursif
+ */
+function processDeleteMenu(id, userId, role) {
+  if (!id) return { status: "error", message: "ID Menu diperlukan" };
 
-  const idsToDelete = new Set([String(targetId)]);
-  let added = true;
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_MENUS);
+  let data = sheet.getDataRange().getValues();
 
-  while (added) {
-    added = false;
-    for (let i = 1; i < rows.length; i++) {
-      const id = String(rows[i][0]);
-      const pId = String(rows[i][1]);
-      if (idsToDelete.has(pId) && !idsToDelete.has(id)) {
-        idsToDelete.add(id);
-        added = true;
-      }
+  // Kumpulkan semua ID yang akan dihapus (termasuk anak/sub-menu)
+  const idsToDelete = [String(id)];
+  collectChildMenuIds(data, String(id), idsToDelete);
+
+  let deletedCount = 0;
+  // Hapus dari baris paling bawah agar indeks tidak bergeser
+  for (let i = data.length - 1; i >= 1; i--) {
+    const rowId = String(data[i][0]);
+    if (idsToDelete.includes(rowId)) {
+      sheet.deleteRow(i + 1);
+      deletedCount++;
     }
   }
 
-  for (let i = rows.length - 1; i >= 1; i--) {
-    if (idsToDelete.has(String(rows[i][0]))) sheet.deleteRow(i + 1);
+  return { status: "success", message: `${deletedCount} item menu berhasil dihapus` };
+}
+
+function collectChildMenuIds(data, parentId, accumulator) {
+  for (let i = 1; i < data.length; i++) {
+    const rowId = String(data[i][0]);
+    const rowParentId = String(data[i][1]);
+
+    if (rowParentId === parentId) {
+      accumulator.push(rowId);
+      collectChildMenuIds(data, rowId, accumulator);
+    }
   }
 }
 
-function getUsersList() {
-  const rows = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_USERS).getDataRange().getValues();
+/**
+ * Proses Autentikasi Pengguna (Login)
+ */
+function processLogin(username, password) {
+  if (!username || !password) {
+    return { status: "error", message: "Username dan password wajib diisi." };
+  }
+
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_USERS);
+  const data = sheet.getDataRange().getValues();
+
+  for (let i = 1; i < data.length; i++) {
+    const u = String(data[i][1] || "").trim();
+    const p = String(data[i][2] || "").trim();
+
+    if (u.toLowerCase() === username.trim().toLowerCase() && p === password.trim()) {
+      return {
+        status: "success",
+        user: {
+          userId: String(data[i][0]),
+          username: String(data[i][1]),
+          fullName: String(data[i][3]),
+          role: String(data[i][4])
+        }
+      };
+    }
+  }
+
+  return { status: "error", message: "Username atau password salah." };
+}
+
+/**
+ * Mengambil seluruh daftar pengguna
+ */
+function fetchAllUsers() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_USERS);
+  const data = sheet.getDataRange().getValues();
   const users = [];
-  for (let i = 1; i < rows.length; i++) {
-    if (rows[i][0]) {
-      users.push({
-        userId: String(rows[i][0]),
-        username: String(rows[i][1]),
-        password: String(rows[i][2]),
-        fullName: String(rows[i][3]),
-        role: String(rows[i][4])
-      });
-    }
+
+  for (let i = 1; i < data.length; i++) {
+    if (!data[i][0]) continue;
+    users.push({
+      userId: String(data[i][0]),
+      username: String(data[i][1]),
+      fullName: String(data[i][3]),
+      role: String(data[i][4])
+    });
   }
+
   return users;
 }
 
-// LOGIKA INPUT MANUAL USER_ID & UPDATE USER
-function saveOrUpdateUser(payload) {
-  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_USERS);
-  const rows = sheet.getDataRange().getValues();
-  let targetRowIndex = -1;
+/**
+ * Menyimpan atau memperbarui data pengguna
+ */
+function processSaveUser(payload) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_USERS);
+  const data = sheet.getDataRange().getValues();
 
-  if (payload.isEditMode) {
-    // Mode Update: Cari berdasarkan User_ID
-    for (let i = 1; i < rows.length; i++) {
-      if (String(rows[i][0]).toLowerCase() === String(payload.userId).toLowerCase()) {
-        targetRowIndex = i + 1;
-        break;
-      }
-    }
-    if (targetRowIndex === -1) throw new Error("User ID tidak ditemukan untuk diperbarui.");
-  } else {
-    // Mode Create: Validasi Unique User_ID dan Unique Username
-    for (let i = 1; i < rows.length; i++) {
-      if (String(rows[i][0]).toLowerCase() === String(payload.userId).toLowerCase()) {
-        throw new Error("User ID '" + payload.userId + "' sudah digunakan. Gunakan User ID lain.");
-      }
-      if (String(rows[i][1]).toLowerCase() === String(payload.username).toLowerCase()) {
-        throw new Error("Username '" + payload.username + "' sudah terdaftar. Gunakan Username lain.");
-      }
+  const userId = payload.userId ? String(payload.userId).trim() : "USR-" + Date.now();
+  const username = payload.username ? String(payload.username).trim() : "";
+  const password = payload.password ? String(payload.password).trim() : "";
+  const fullName = payload.fullName ? String(payload.fullName).trim() : "";
+  const role = payload.role || "USER_KHUSUS";
+
+  let rowIndex = -1;
+
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === userId) {
+      rowIndex = i + 1;
+      break;
     }
   }
 
-  const rowData = [
-    payload.userId, payload.username, payload.password, payload.fullName, payload.role || "USER_KHUSUS"
-  ];
+  const rowData = [userId, username, password, fullName, role];
 
-  if (targetRowIndex > 0) {
-    sheet.getRange(targetRowIndex, 1, 1, rowData.length).setValues([rowData]);
+  if (rowIndex > 0) {
+    sheet.getRange(rowIndex, 1, 1, rowData.length).setValues([rowData]);
   } else {
     sheet.appendRow(rowData);
   }
-  return { userId: payload.userId };
+
+  return { status: "success", message: "Data user berhasil disimpan", userId: userId };
 }
 
-function deleteUserRecord(targetUserId) {
-  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_USERS);
-  const rows = sheet.getDataRange().getValues();
-  for (let i = rows.length - 1; i >= 1; i--) {
-    if (String(rows[i][0]) === String(targetUserId)) {
+/**
+ * Menghapus pengguna berdasarkan userId
+ */
+function processDeleteUser(userId) {
+  if (!userId) return { status: "error", message: "User ID diperlukan" };
+
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_USERS);
+  const data = sheet.getDataRange().getValues();
+
+  for (let i = data.length - 1; i >= 1; i--) {
+    if (String(data[i][0]) === userId) {
       sheet.deleteRow(i + 1);
-      return;
+      return { status: "success", message: "User berhasil dihapus" };
     }
   }
+
+  return { status: "error", message: "User ID tidak ditemukan" };
+}
+
+/**
+ * Memastikan Tab 'Menus' dan 'Users' tersedia di Google Sheets
+ */
+function ensureSheetsExist() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  // 1. Cek & Inisialisasi Sheet Menus
+  let menuSheet = ss.getSheetByName(SHEET_MENUS);
+  if (!menuSheet) {
+    menuSheet = ss.insertSheet(SHEET_MENUS);
+    menuSheet.appendRow(MENUS_HEADERS);
+    menuSheet.getRange(1, 1, 1, MENUS_HEADERS.length).setFontWeight("bold").setBackground("#1f2937").setFontColor("#ffffff");
+    
+    // Data contoh awal
+    menuSheet.appendRow(["MNU-001", "", "Dashboard Utama", "General", "UMUM", "link", "fas fa-gauge", "https://google.com", "Halaman Utama Dashboard", "ADM-01"]);
+  }
+
+  // 2. Cek & Inisialisasi Sheet Users
+  let userSheet = ss.getSheetByName(SHEET_USERS);
+  if (!userSheet) {
+    userSheet = ss.insertSheet(SHEET_USERS);
+    userSheet.appendRow(USERS_HEADERS);
+    userSheet.getRange(1, 1, 1, USERS_HEADERS.length).setFontWeight("bold").setBackground("#1f2937").setFontColor("#ffffff");
+    
+    // Akun default admin jika sheet baru dibuat
+    userSheet.appendRow(["ADM-01", "admin", "admin123", "Administrator Portal", "ADMIN"]);
+  }
+}
+
+/**
+ * Format Response JSON standar untuk API
+ */
+function createJsonResponse(data) {
+  return ContentService.createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
 }
