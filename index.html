@@ -23,12 +23,25 @@
       width: 100vw !important; height: 100vh !important; background-color: #0b0f19 !important;
       z-index: 999999 !important; overflow-y: auto !important; padding: 20px !important;
     }
+    
+    /* FIX: Menambahkan bridge pseudo-element agar kursor tidak hilang saat dari menu ke sub-menu */
+    .dropdown-container { position: relative; }
     .dropdown-box {
-      display: none; position: absolute; top: 100%; right: 0; margin-top: 0.5rem; width: 16rem;
+      display: none; position: absolute; top: calc(100% + 4px); right: 0; width: 16rem;
       background-color: #111827; border: 1px solid #1f2937; border-radius: 1rem; padding: 0.5rem;
       box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); z-index: 50;
     }
+    .dropdown-box::before {
+      content: '';
+      position: absolute;
+      top: -12px;
+      left: 0;
+      right: 0;
+      height: 12px;
+      background: transparent;
+    }
     .dropdown-container:hover .dropdown-box { display: block; }
+    
     .fast-spinner {
       width: 24px; height: 24px; border: 3px solid rgba(16, 185, 129, 0.2);
       border-top-color: #10b981; border-radius: 50%; animation: spin 0.5s linear infinite;
@@ -163,6 +176,10 @@
             <input type="text" id="formTitle" required class="w-full bg-slate-900 border border-[#1f2937] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
           </div>
           <div>
+            <label class="block text-[11px] font-semibold text-slate-300 mb-1">Kategori / Kelompok Modul</label>
+            <input type="text" id="formCategory" placeholder="misal: General, Operasional, Laporan" class="w-full bg-slate-900 border border-[#1f2937] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+          </div>
+          <div>
             <label class="block text-[11px] font-semibold text-slate-300 mb-1">Akses Privasi</label>
             <select id="formVisibility" class="w-full bg-slate-900 border border-[#1f2937] rounded-xl px-3 py-2 text-xs text-white">
               <option value="UMUM">UMUM (Semua Orang)</option>
@@ -239,7 +256,7 @@
       </div>
     </div>
 
-    <!-- FORM INPUT / EDIT USER MODAL (MANUAL USER ID) -->
+    <!-- FORM INPUT / EDIT USER MODAL -->
     <div id="userFormModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[110] hidden flex items-center justify-center p-4">
       <div class="bg-[#111827] border border-[#1f2937] w-full max-w-sm rounded-2xl p-6 shadow-2xl">
         <div class="flex justify-between items-center pb-3 border-b border-[#1f2937] mb-4">
@@ -247,10 +264,9 @@
           <button onclick="closeUserFormModal()" class="text-slate-400 hover:text-white"><i class="fas fa-times"></i></button>
         </div>
         <form onsubmit="executeSaveUser(event)" class="space-y-3">
-          <input type="hidden" id="userFormIsEdit" value="false">
           
           <div>
-            <label class="block text-[11px] font-semibold text-slate-300 mb-1">User ID (Manual Input)</label>
+            <label class="block text-[11px] font-semibold text-slate-300 mb-1">User ID</label>
             <input type="text" id="userFormId" placeholder="misal: USR-001 / ADM-01" required class="w-full bg-slate-900 border border-[#1f2937] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500">
             <span id="userIdHelp" class="text-[10px] text-slate-500 mt-1 block">ID unik untuk pengenal pemilik menu.</span>
           </div>
@@ -262,7 +278,7 @@
 
           <div>
             <label class="block text-[11px] font-semibold text-slate-300 mb-1">Password</label>
-            <input type="text" id="userFormPassword" required class="w-full bg-slate-900 border border-[#1f2937] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500">
+            <input type="password" id="userFormPassword" required class="w-full bg-slate-900 border border-[#1f2937] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500">
           </div>
 
           <div>
@@ -293,7 +309,7 @@
   </div>
 
   <script>
-    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbyDxeZSIBO03vCetpXHoUJWzlG6dH2UXbKt_bGQ0X1sNUq405cqetovpmHNaLSvdITSPA/exec";
+    const GAS_API_URL = "https://script.google.com/macros/s/AKfycby3HFTXgKIcORVoNjhGhU1OjnCSl-rYPxz9STqwyptr1tvad7qh1_TLwrnt3qb6Qut3/exec";
     
     let rootMenus = [];
     let usersList = [];
@@ -301,6 +317,15 @@
     let activePageId = "ROOT";
 
     document.addEventListener('DOMContentLoaded', () => {
+      // FIX: Membaca status login yang tersimpan di localStorage agar tidak hilang saat refresh
+      const savedUser = localStorage.getItem('portal_currentUser');
+      if (savedUser) {
+        try {
+          currentUser = JSON.parse(savedUser);
+        } catch (e) {
+          localStorage.removeItem('portal_currentUser');
+        }
+      }
       fetchData();
     });
 
@@ -332,7 +357,8 @@
       document.getElementById('cardsGrid').classList.add('hidden');
 
       try {
-        const response = await fetch(`${GAS_API_URL}?action=getMenus&userId=${userId}&role=${role}`);
+        // FIX: Tambahkan parameter timestamp (_t) agar request selalu langsung memanggil GAS API
+        const response = await fetch(`${GAS_API_URL}?action=getMenus&userId=${userId}&role=${role}&_t=${Date.now()}`);
         const result = await response.json();
         
         if (result.status === 'success') {
@@ -518,8 +544,9 @@
             <h4 class="text-sm font-bold text-white">${item.title}</h4>
             <p class="text-xs text-slate-400 mt-1 line-clamp-2">${item.description || ''}</p>
             
-            <div class="mt-3 flex items-center gap-2">
+            <div class="mt-3 flex items-center gap-2 flex-wrap">
               ${visBadge}
+              ${item.category ? `<span class="bg-indigo-500/20 text-indigo-300 border-indigo-500/30 text-[9px] font-bold px-2 py-0.5 rounded border"><i class="fas fa-tag text-[8px] mr-1"></i>${item.category}</span>` : ''}
               <span class="text-[9px] font-semibold text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-[#1f2937]">
                 Owner: ${item.ownerUserId}
               </span>
@@ -552,6 +579,7 @@
     function handleAuthClick() {
       if (currentUser) {
         currentUser = null;
+        localStorage.removeItem('portal_currentUser');
         clearAppCache();
         fetchData(true);
       } else {
@@ -576,14 +604,21 @@
 
         if (json.status === 'success') {
           currentUser = json.user;
+          // FIX: Simpan user di localStorage agar sesi login tetap bertahan setelah refresh
+          localStorage.setItem('portal_currentUser', JSON.stringify(currentUser));
           closeLoginModal();
           clearAppCache();
           await fetchData(true);
         } else {
-          alert(json.message);
+          // Deteksi error getDataRange dari backend GAS
+          if (json.message && json.message.includes("getDataRange")) {
+            alert("Kendala Backend: Tab sheet 'Users' tidak ditemukan di Google Sheets. Pastikan nama tab di Google Sheets sesuai (misal: 'Users').");
+          } else {
+            alert(json.message || "Gagal melakukan login. Periksa username dan password.");
+          }
         }
       } catch (err) {
-        alert("Gagal melakukan login.");
+        alert("Gagal melakukan login. Terjadi kendala koneksi ke Apps Script.");
       } finally {
         hideGlobalSpinner();
       }
@@ -593,6 +628,7 @@
       document.getElementById('formId').value = editItem ? editItem.id : '';
       document.getElementById('formParentId').value = parentId;
       document.getElementById('formTitle').value = editItem ? editItem.title : '';
+      document.getElementById('formCategory').value = editItem ? (editItem.category || 'General') : 'General';
       document.getElementById('formVisibility').value = editItem ? editItem.visibility : 'UMUM';
       document.getElementById('formType').value = editItem ? editItem.type : 'link';
       document.getElementById('formIcon').value = editItem ? editItem.iconClass : 'fas fa-link';
@@ -607,20 +643,23 @@
       showGlobalSpinner("Menyimpan Perubahan Menu...");
 
       const payload = {
+        action: 'saveMenu',
         id: document.getElementById('formId').value,
         parentId: document.getElementById('formParentId').value,
         title: document.getElementById('formTitle').value,
+        category: document.getElementById('formCategory').value,
         visibility: document.getElementById('formVisibility').value,
         type: document.getElementById('formType').value,
         iconClass: document.getElementById('formIcon').value,
         targetUrl: document.getElementById('formUrl').value,
-        description: document.getElementById('formDesc').value
+        description: document.getElementById('formDesc').value,
+        ownerUserId: currentUser ? currentUser.userId : 'PUBLIC'
       };
 
       try {
         const res = await fetch(GAS_API_URL, {
           method: 'POST',
-          body: JSON.stringify({ action: 'saveMenu', sessionUserId: currentUser.userId, payload })
+          body: JSON.stringify(payload)
         });
         const json = await res.json();
 
@@ -629,36 +668,10 @@
           clearAppCache();
           await fetchData(true);
         } else {
-          alert(json.message);
+          alert("Gagal menyimpan menu: " + json.message);
         }
       } catch (err) {
-        alert("Gagal menyimpan menu.");
-      } finally {
-        hideGlobalSpinner();
-      }
-    }
-
-    async function deleteMenu(e, id) {
-      e.stopPropagation();
-      if (!confirm("Hapus menu ini beserta seluruh sub-menunya?")) return;
-
-      showGlobalSpinner("Menghapus Menu...");
-
-      try {
-        const res = await fetch(GAS_API_URL, {
-          method: 'POST',
-          body: JSON.stringify({ action: 'deleteMenu', sessionUserId: currentUser.userId, id })
-        });
-        const json = await res.json();
-
-        if (json.status === 'success') {
-          clearAppCache();
-          await fetchData(true);
-        } else {
-          alert(json.message);
-        }
-      } catch (err) {
-        alert("Gagal menghapus menu.");
+        alert("Terjadi kesalahan koneksi ke server.");
       } finally {
         hideGlobalSpinner();
       }
@@ -667,149 +680,36 @@
     function editMenu(e, id) {
       e.stopPropagation();
       const item = findItemRecursive(rootMenus, id);
-      if (item) openCrudModal(item, item.parentId);
-    }
-
-    /* --- USER MANAGEMENT FUNCTIONS (MANUAL USER ID) --- */
-    async function openUserManagementModal() {
-      if (!currentUser || currentUser.role !== 'ADMIN') return;
-      document.getElementById('userManagementModal').classList.remove('hidden');
-      await fetchUsersData();
-    }
-    function closeUserManagementModal() { document.getElementById('userManagementModal').classList.add('hidden'); }
-
-    async function fetchUsersData() {
-      showGlobalSpinner("Memuat Data User...");
-      try {
-        const res = await fetch(`${GAS_API_URL}?action=getUsers&userId=${currentUser.userId}&role=${currentUser.role}`);
-        const json = await res.json();
-
-        if (json.status === 'success') {
-          usersList = json.data;
-          renderUserTable();
-        } else {
-          alert(json.message);
-        }
-      } catch (err) {
-        alert("Gagal memuat data user.");
-      } finally {
-        hideGlobalSpinner();
+      if (item) {
+        openCrudModal(item, item.parentId || '');
       }
     }
 
-    function renderUserTable() {
-      const tbody = document.getElementById('userTableBody');
-      tbody.innerHTML = usersList.map(u => `
-        <tr class="hover:bg-slate-800/50">
-          <td class="p-3 font-mono text-[10px] text-purple-300 font-bold">${u.userId}</td>
-          <td class="p-3 font-semibold text-slate-200">@${u.username}</td>
-          <td class="p-3 font-medium text-white">${u.fullName}</td>
-          <td class="p-3">
-            <span class="px-2 py-0.5 rounded text-[9px] font-bold ${u.role === 'ADMIN' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'}">
-              ${u.role}
-            </span>
-          </td>
-          <td class="p-3 text-center">
-            <div class="flex items-center justify-center space-x-1">
-              <button onclick="editUser('${u.userId}')" class="w-6 h-6 rounded bg-amber-500/20 text-amber-300 text-[10px] flex items-center justify-center hover:bg-amber-500/30"><i class="fas fa-pen"></i></button>
-              <button onclick="deleteUser('${u.userId}')" class="w-6 h-6 rounded bg-red-500/20 text-red-300 text-[10px] flex items-center justify-center hover:bg-red-500/30"><i class="fas fa-trash"></i></button>
-            </div>
-          </td>
-        </tr>
-      `).join('');
-    }
+    async function deleteMenu(e, id) {
+      e.stopPropagation();
+      if (!confirm("Apakah Anda yakin ingin menghapus menu ini?")) return;
 
-    function openUserFormModal(editUserObj = null) {
-      const userIdInput = document.getElementById('userFormId');
-      const isEditInput = document.getElementById('userFormIsEdit');
-
-      if (editUserObj) {
-        document.getElementById('userFormTitle').innerText = "Edit Data User";
-        isEditInput.value = "true";
-        userIdInput.value = editUserObj.userId;
-        userIdInput.readOnly = true; // Kunci User_ID saat mode edit
-        userIdInput.classList.add('opacity-60', 'cursor-not-allowed');
-        document.getElementById('userIdHelp').innerText = "User ID tidak dapat diubah saat mode edit.";
-        
-        document.getElementById('userFormUsername').value = editUserObj.username;
-        document.getElementById('userFormPassword').value = editUserObj.password;
-        document.getElementById('userFormFullName').value = editUserObj.fullName;
-        document.getElementById('userFormRole').value = editUserObj.role;
-      } else {
-        document.getElementById('userFormTitle').innerText = "Tambah User Baru";
-        isEditInput.value = "false";
-        userIdInput.value = "";
-        userIdInput.readOnly = false; // Aktifkan input manual untuk user baru
-        userIdInput.classList.remove('opacity-60', 'cursor-not-allowed');
-        document.getElementById('userIdHelp').innerText = "ID unik untuk pengenal pemilik menu (contoh: USR-001).";
-
-        document.getElementById('userFormUsername').value = "";
-        document.getElementById('userFormPassword').value = "";
-        document.getElementById('userFormFullName').value = "";
-        document.getElementById('userFormRole').value = "USER_KHUSUS";
-      }
-
-      document.getElementById('userFormModal').classList.remove('hidden');
-    }
-    function closeUserFormModal() { document.getElementById('userFormModal').classList.add('hidden'); }
-
-    async function executeSaveUser(e) {
-      e.preventDefault();
-      showGlobalSpinner("Menyimpan User...");
-
-      const payload = {
-        isEditMode: document.getElementById('userFormIsEdit').value === "true",
-        userId: document.getElementById('userFormId').value.trim(),
-        username: document.getElementById('userFormUsername').value.trim(),
-        password: document.getElementById('userFormPassword').value,
-        fullName: document.getElementById('userFormFullName').value,
-        role: document.getElementById('userFormRole').value
-      };
-
+      showGlobalSpinner("Menghapus Menu...");
       try {
         const res = await fetch(GAS_API_URL, {
           method: 'POST',
-          body: JSON.stringify({ action: 'saveUser', sessionUserId: currentUser.userId, payload })
+          body: JSON.stringify({
+            action: 'deleteMenu',
+            id: id,
+            userId: currentUser ? currentUser.userId : '',
+            role: currentUser ? currentUser.role : 'UMUM'
+          })
         });
         const json = await res.json();
 
         if (json.status === 'success') {
-          closeUserFormModal();
-          await fetchUsersData();
+          clearAppCache();
+          await fetchData(true);
         } else {
-          alert(json.message);
+          alert("Gagal menghapus: " + json.message);
         }
       } catch (err) {
-        alert("Gagal menyimpan data user.");
-      } finally {
-        hideGlobalSpinner();
-      }
-    }
-
-    function editUser(userId) {
-      const targetUser = usersList.find(u => u.userId === userId);
-      if (targetUser) openUserFormModal(targetUser);
-    }
-
-    async function deleteUser(targetUserId) {
-      if (!confirm(`Hapus akun user ini (${targetUserId})?`)) return;
-
-      showGlobalSpinner("Menghapus User...");
-
-      try {
-        const res = await fetch(GAS_API_URL, {
-          method: 'POST',
-          body: JSON.stringify({ action: 'deleteUser', sessionUserId: currentUser.userId, targetUserId })
-        });
-        const json = await res.json();
-
-        if (json.status === 'success') {
-          await fetchUsersData();
-        } else {
-          alert(json.message);
-        }
-      } catch (err) {
-        alert("Gagal menghapus user.");
+        alert("Gagal melakukan penghapusan.");
       } finally {
         hideGlobalSpinner();
       }
@@ -824,6 +724,108 @@
         }
       }
       return null;
+    }
+
+    /* USER MANAGEMENT CONTROLLERS */
+    async function openUserManagementModal() {
+      document.getElementById('userManagementModal').classList.remove('hidden');
+      await loadUsersData();
+    }
+    function closeUserManagementModal() { document.getElementById('userManagementModal').classList.add('hidden'); }
+
+    async function loadUsersData() {
+      try {
+        const res = await fetch(`${GAS_API_URL}?action=getUsers&_t=${Date.now()}`);
+        const json = await res.json();
+
+        if (json.status === 'success') {
+          usersList = json.data;
+          renderUserTable();
+        }
+      } catch (err) {
+        alert("Gagal mengambil data user.");
+      }
+    }
+
+    function renderUserTable() {
+      const tbody = document.getElementById('userTableBody');
+      tbody.innerHTML = usersList.map(u => `
+        <tr class="hover:bg-slate-800/50 transition-all">
+          <td class="p-3 font-mono font-bold text-emerald-400">${u.userId}</td>
+          <td class="p-3 text-slate-200">${u.username}</td>
+          <td class="p-3 text-slate-300">${u.fullName}</td>
+          <td class="p-3"><span class="px-2 py-0.5 text-[10px] font-bold rounded ${u.role === 'ADMIN' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : 'bg-slate-700 text-slate-300'}">${u.role}</span></td>
+          <td class="p-3 text-center space-x-1">
+            <button onclick="deleteUser('${u.userId}')" class="px-2 py-1 rounded bg-red-500/20 text-red-300 hover:bg-red-500/30 text-[10px]"><i class="fas fa-trash"></i></button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function openUserFormModal() {
+      document.getElementById('userFormId').value = '';
+      document.getElementById('userFormUsername').value = '';
+      document.getElementById('userFormPassword').value = '';
+      document.getElementById('userFormFullName').value = '';
+      document.getElementById('userFormRole').value = 'USER_KHUSUS';
+      document.getElementById('userFormModal').classList.remove('hidden');
+    }
+    function closeUserFormModal() { document.getElementById('userFormModal').classList.add('hidden'); }
+
+    async function executeSaveUser(e) {
+      e.preventDefault();
+      showGlobalSpinner("Menyimpan Data User...");
+
+      const payload = {
+        action: 'saveUser',
+        userId: document.getElementById('userFormId').value,
+        username: document.getElementById('userFormUsername').value,
+        password: document.getElementById('userFormPassword').value,
+        fullName: document.getElementById('userFormFullName').value,
+        role: document.getElementById('userFormRole').value
+      };
+
+      try {
+        const res = await fetch(GAS_API_URL, {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+        const json = await res.json();
+
+        if (json.status === 'success') {
+          closeUserFormModal();
+          await loadUsersData();
+        } else {
+          alert("Gagal menyimpan user: " + json.message);
+        }
+      } catch (err) {
+        alert("Gagal menyimpan user.");
+      } finally {
+        hideGlobalSpinner();
+      }
+    }
+
+    async function deleteUser(userId) {
+      if (!confirm(`Hapus user ID: ${userId}?`)) return;
+      showGlobalSpinner("Menghapus User...");
+
+      try {
+        const res = await fetch(GAS_API_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'deleteUser', userId: userId })
+        });
+        const json = await res.json();
+
+        if (json.status === 'success') {
+          await loadUsersData();
+        } else {
+          alert(json.message);
+        }
+      } catch (err) {
+        alert("Gagal menghapus user.");
+      } finally {
+        hideGlobalSpinner();
+      }
     }
   </script>
 </body>
