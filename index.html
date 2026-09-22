@@ -1,831 +1,663 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" class="h-full bg-slate-950">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Portal DMS</title>
-
-  <!-- CDN Assets -->
+  <title>MONITORING KDF - Sistem Inventaris & Kendaraan BMN</title>
+  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons CDN -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
+  <!-- Google Fonts Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <script>
     tailwind.config = {
-      theme: { extend: { fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] } } }
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+          colors: {
+            brand: { 50: '#eff6ff', 100: '#dbeafe', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8', 800: '#1e40af', 900: '#1e3a8a' }
+          }
+        }
+      }
     }
   </script>
-
   <style>
-    .post-body, .entry-content, article { max-width: 100% !important; padding: 0 !important; margin: 0 !important; background: transparent !important; }
-    #portal-root-wrapper {
-      position: fixed !important; top: 0 !important; left: 0 !important;
-      width: 100vw !important; height: 100vh !important; background-color: #0b0f19 !important;
-      z-index: 999999 !important; overflow-y: auto !important; padding: 20px !important;
+    /* Custom Sleek Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #090d16; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #334155; }
+    .glass-effect { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(16px); }
+
+    /* Force Full Browser Viewport Override */
+    html, body {
+      width: 100vw !important;
+      height: 100vh !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      overflow: hidden !important;
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      max-width: none !important;
     }
-    
-    /* FIX: Menambahkan bridge pseudo-element agar kursor tidak hilang saat dari menu ke sub-menu */
-    .dropdown-container { position: relative; }
-    .dropdown-box {
-      display: none; position: absolute; top: calc(100% + 4px); right: 0; width: 16rem;
-      background-color: #111827; border: 1px solid #1f2937; border-radius: 1rem; padding: 0.5rem;
-      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); z-index: 50;
-    }
-    .dropdown-box::before {
-      content: '';
-      position: absolute;
-      top: -12px;
-      left: 0;
-      right: 0;
-      height: 12px;
-      background: transparent;
-    }
-    .dropdown-container:hover .dropdown-box { display: block; }
-    
-    .fast-spinner {
-      width: 24px; height: 24px; border: 3px solid rgba(16, 185, 129, 0.2);
-      border-top-color: #10b981; border-radius: 50%; animation: spin 0.5s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
-<body class="bg-[#0b0f19] text-slate-100 font-sans antialiased">
+<body class="h-screen w-screen font-sans text-slate-100 antialiased overflow-hidden flex flex-col bg-slate-950">
 
-  <div id="portal-root-wrapper" class="flex flex-col justify-between">
+  <!-- CONFIGURATION CONSTANT -->
+  <script>
+    // Paste Web App URL dari Google Apps Script yang sudah dideploy di sini
+    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxrZoAh_gB56Hmkf9n5O-0zByanQmatjYE_K2eKarusfwH2BsLo07PFaMVRuWZXYJqV/exec";
+  </script>
 
-    <!-- Fast Overlay Spinner -->
-    <div id="globalSpinnerOverlay" class="fixed inset-0 bg-slate-950/60 backdrop-blur-[2px] z-[999] hidden flex items-center justify-center">
-      <div class="bg-[#111827] border border-[#1f2937] px-5 py-3.5 rounded-2xl shadow-2xl flex items-center space-x-3">
-        <div class="fast-spinner"></div>
-        <span id="globalSpinnerMessage" class="text-xs font-semibold text-slate-200">Memproses...</span>
-      </div>
+  <!-- LOADING SPINNER OVERLAY -->
+  <div id="loadingOverlay" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex flex-col items-center justify-center transition-all">
+    <div class="relative flex items-center justify-center">
+      <div class="w-16 h-16 border-4 border-brand-500/20 border-t-brand-500 rounded-full animate-spin"></div>
+      <i class="fa-solid fa-truck-pickup absolute text-brand-500 text-lg"></i>
     </div>
+    <p id="loadingText" class="mt-4 text-xs font-semibold tracking-wider text-slate-300 animate-pulse uppercase">Memuat Data Server...</p>
+  </div>
 
-    <div>
-      <!-- Topbar Navbar Header -->
-      <header class="w-full bg-[#111827] border border-[#1f2937] rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 mb-6 shadow-xl">
-        <div class="flex items-center space-x-3 cursor-pointer w-full md:w-auto justify-between md:justify-start" onclick="loadPage('ROOT')">
-          <div class="flex items-center space-x-3">
-            <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-extrabold shadow-lg">
-              <i class="fa-solid fa-folder"></i>
-            </div>
-            <div>
-              <div class="flex items-center gap-2">
-                <h1 class="text-sm font-extrabold text-white">Portal DMS ALTEN</h1>
-                <span id="roleBadge" class="bg-emerald-500/10 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-500/20">ROLE: UMUM</span>
-              </div>
-              <p id="userOwnerInfo" class="text-[11px] text-slate-400">@public_access</p>
-            </div>
+  <!-- TOAST NOTIFICATION -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 flex items-center p-4 rounded-xl shadow-2xl border bg-slate-900 border-slate-700 text-white min-w-[320px]">
+    <div id="toastIcon" class="mr-3 text-lg"></div>
+    <div id="toastMessage" class="text-xs font-medium"></div>
+  </div>
+
+  <!-- LOGIN SCREEN (OVERLAY) -->
+  <div id="loginSection" class="fixed inset-0 z-40 bg-slate-950 flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black"></div>
+    <div class="relative w-full max-w-md bg-slate-900/90 border border-slate-800 p-8 rounded-2xl shadow-2xl backdrop-blur-xl">
+      <div class="text-center mb-8">
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-brand-600/20 text-brand-500 mb-4 border border-brand-500/30 shadow-lg shadow-brand-500/10">
+          <i class="fa-solid fa-shield-halved text-2xl"></i>
+        </div>
+        <h1 class="text-2xl font-bold tracking-tight text-white">MONITORING KDF</h1>
+        <p class="text-[11px] text-slate-400 mt-1 uppercase tracking-widest font-semibold">Sistem Pengelolaan BMN & Kendaraan Dinas</p>
+      </div>
+
+      <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-5">
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Username</label>
+          <div class="relative">
+            <i class="fa-solid fa-user absolute left-3.5 top-3.5 text-slate-500 text-sm"></i>
+            <input type="text" id="loginUsername" required placeholder="Masukkan username" class="w-full bg-slate-950 border border-slate-800 text-white rounded-xl pl-10 pr-4 py-2.5 text-xs focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition">
           </div>
         </div>
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Password</label>
+          <div class="relative">
+            <i class="fa-solid fa-lock absolute left-3.5 top-3.5 text-slate-500 text-sm"></i>
+            <input type="password" id="loginPassword" required placeholder="••••••••" class="w-full bg-slate-950 border border-slate-800 text-white rounded-xl pl-10 pr-4 py-2.5 text-xs focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition">
+          </div>
+        </div>
+        <button type="submit" class="w-full bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold uppercase tracking-wider py-3 px-4 rounded-xl shadow-lg shadow-brand-600/30 transition duration-200 flex items-center justify-center space-x-2">
+          <span>Masuk Aplikasi</span>
+          <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </form>
+    </div>
+  </div>
 
-        <div class="flex items-center space-x-2 w-full md:w-auto justify-end flex-wrap gap-y-2">
-          <div id="dynamicNavbarMenus" class="flex items-center space-x-2"></div>
+  <!-- MAIN APPLICATION LAYOUT (FULL BROWSER 100VH) -->
+  <div id="appContainer" class="hidden fixed inset-0 w-screen h-screen z-30 flex overflow-hidden bg-slate-950">
+    
+    <!-- SIDEBAR NAVIGATION -->
+    <aside id="sidebar" class="w-64 bg-slate-900 border-r border-slate-800/80 flex flex-col flex-shrink-0 transition-all duration-300 z-30">
+      <!-- Brand Header -->
+      <div class="h-16 flex items-center justify-between px-6 border-b border-slate-800/80">
+        <div class="flex items-center space-x-3">
+          <div class="w-9 h-9 rounded-xl bg-brand-600 flex items-center justify-center text-white font-bold shadow-lg shadow-brand-600/30">
+            <i class="fa-solid fa-truck-monster"></i>
+          </div>
+          <div>
+            <span class="font-extrabold text-xs tracking-wide text-white block">KDF MONITOR</span>
+            <span class="text-[10px] text-brand-400 font-semibold uppercase tracking-widest block">BMN System</span>
+          </div>
+        </div>
+      </div>
 
-          <!-- Tombol Kelola User (Khusus ADMIN) -->
-          <button id="manageUserBtn" onclick="openUserManagementModal()" class="hidden whitespace-nowrap px-3.5 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-bold transition-all shadow-lg flex items-center gap-1.5">
-            <i class="fas fa-users-gear text-[10px]"></i><span>Kelola User</span>
+      <!-- Navigation Links -->
+      <nav class="flex-1 px-3 py-6 space-y-1.5 overflow-y-auto">
+        <a href="#" onclick="switchTab('dashboard')" id="nav-dashboard" class="sidebar-link active flex items-center px-4 py-3 text-xs font-semibold rounded-xl text-white bg-slate-800/80 transition">
+          <i class="fa-solid fa-chart-pie w-6 text-brand-500 text-sm"></i>
+          <span>Dashboard Analytics</span>
+        </a>
+        <a href="#" onclick="switchTab('data-bmn')" id="nav-data-bmn" class="sidebar-link flex items-center px-4 py-3 text-xs font-medium rounded-xl text-slate-400 hover:bg-slate-800/60 hover:text-white transition">
+          <i class="fa-solid fa-boxes-stacked w-6 text-emerald-500 text-sm"></i>
+          <span>Data Master BMN</span>
+        </a>
+        <a href="#" onclick="switchTab('pinjam-pakai')" id="nav-pinjam-pakai" class="sidebar-link flex items-center px-4 py-3 text-xs font-medium rounded-xl text-slate-400 hover:bg-slate-800/60 hover:text-white transition">
+          <i class="fa-solid fa-right-left w-6 text-amber-500 text-sm"></i>
+          <span>Status Pinjam Pakai</span>
+        </a>
+      </nav>
+
+      <!-- User Info Card -->
+      <div class="p-4 border-t border-slate-800/80 bg-slate-900/50">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300 text-xs">
+              <i class="fa-solid fa-user-gear"></i>
+            </div>
+            <div class="overflow-hidden">
+              <p id="appUserName" class="text-xs font-bold text-white truncate">Administrator</p>
+              <p id="appUserRole" class="text-[10px] text-slate-400 font-medium capitalize">Operator</p>
+            </div>
+          </div>
+          <button onclick="logout()" title="Keluar" class="p-2 text-slate-400 hover:text-red-400 hover:bg-slate-800 rounded-lg transition">
+            <i class="fa-solid fa-power-off text-xs"></i>
           </button>
+        </div>
+      </div>
+    </aside>
 
-          <button id="addMenuMainBtn" onclick="openCrudModal()" class="hidden whitespace-nowrap px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-lg flex items-center gap-1.5">
-            <i class="fas fa-plus text-[10px]"></i><span>+ Menu Utama</span>
+    <!-- MAIN VIEWPORT CONTAINER -->
+    <div class="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-slate-950">
+      
+      <!-- TOP NAVBAR -->
+      <header class="h-16 bg-slate-900/80 backdrop-blur border-b border-slate-800/80 px-6 flex items-center justify-between flex-shrink-0 z-20">
+        <div class="flex items-center space-x-4">
+          <button onclick="toggleSidebar()" class="text-slate-400 hover:text-white focus:outline-none">
+            <i class="fa-solid fa-bars text-sm"></i>
           </button>
+          <h2 id="pageTitle" class="text-sm font-bold text-white tracking-wide">Dashboard Utama Analytics</h2>
+        </div>
 
-          <button id="authBtn" onclick="handleAuthClick()" class="whitespace-nowrap px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-lg flex items-center gap-1.5">
-            <i class="fas fa-key text-[10px]"></i><span id="authBtnLabel">Login System</span>
+        <div class="flex items-center space-x-3">
+          <button onclick="loadDashboardData()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl border border-slate-700/80 transition flex items-center space-x-2">
+            <i class="fa-solid fa-arrows-rotate"></i>
+            <span class="hidden sm:inline">Refresh Data</span>
+          </button>
+          <button onclick="openFormModal()" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-brand-600/30 transition flex items-center space-x-2">
+            <i class="fa-solid fa-plus"></i>
+            <span>Tambah Data BMN</span>
           </button>
         </div>
       </header>
 
-      <!-- Main Navigation & Card Content -->
-      <main class="space-y-6">
-        <div id="breadcrumbBar" class="flex items-center space-x-2">
-          <button onclick="loadPage('ROOT')" class="px-3 py-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-xl text-xs font-bold flex items-center gap-1.5">
-            <i class="fas fa-house text-[10px]"></i> Beranda Utama
-          </button>
-        </div>
-
-        <!-- Banner Header + Search Field In-line -->
-        <div class="relative overflow-hidden rounded-3xl bg-[#111827] border border-[#1f2937] p-6 sm:p-8 shadow-xl">
-          <span class="inline-block px-3 py-1 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 mb-3">
-            Selamat Datang di Portal Data Management System
-          </span>
-          
-          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <h2 id="bannerTitle" class="text-2xl sm:text-3xl font-extrabold text-white">Direktori Sistem & Tautan</h2>
-            
-            <div class="relative w-full md:w-80">
-              <i class="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-xs text-slate-500"></i>
-              <input type="text" id="searchInput" oninput="handleSearch(this.value)" placeholder="Cari menu / modul..." 
-                class="w-full bg-slate-900 border border-[#1f2937] rounded-xl pl-9 pr-8 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-all shadow-inner">
-              <button id="clearSearchBtn" onclick="clearSearch()" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500 hover:text-white">
-                <i class="fas fa-times"></i>
-              </button>
+      <!-- DYNAMIC CONTENT CANVAS -->
+      <main class="flex-1 p-4 md:p-6 overflow-y-auto space-y-6 w-full max-w-none">
+        
+        <!-- ANALYTICS CARDS GRID -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
+          <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex items-center justify-between shadow-lg">
+            <div>
+              <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Total Unit BMN</p>
+              <h3 id="statTotalAset" class="text-2xl font-black text-white mt-1">0</h3>
+            </div>
+            <div class="w-11 h-11 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center text-lg border border-blue-500/20">
+              <i class="fa-solid fa-boxes-stacked"></i>
             </div>
           </div>
 
-          <p id="bannerDesc" class="text-slate-400 text-xs sm:text-sm mt-3 max-w-3xl leading-relaxed">
-            Silakan pilih menu di atas atau jelajahi modul di bawah ini.
-          </p>
-        </div>
-
-        <!-- Inline Loading Canvas -->
-        <div id="loadingState" class="flex flex-col items-center justify-center py-16 space-y-3">
-          <div class="fast-spinner"></div>
-          <p class="text-xs text-slate-400">Sinkronisasi data...</p>
-        </div>
-
-        <!-- Cards Container Grid -->
-        <div id="cardsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5 hidden"></div>
-      </main>
-    </div>
-
-    <!-- Login Modal -->
-    <div id="loginModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[100] hidden flex items-center justify-center p-4">
-      <div class="bg-[#111827] border border-[#1f2937] w-full max-w-sm rounded-2xl p-6 shadow-2xl">
-        <div class="flex justify-between items-center pb-3 border-b border-[#1f2937] mb-4">
-          <h3 class="text-xs font-bold text-white uppercase">Authentication System</h3>
-          <button onclick="closeLoginModal()" class="text-slate-400 hover:text-white"><i class="fas fa-times"></i></button>
-        </div>
-        <form onsubmit="executeLogin(event)" class="space-y-4">
-          <div>
-            <label class="block text-[11px] font-semibold text-slate-300 mb-1">Username</label>
-            <input type="text" id="loginUser" required class="w-full bg-slate-900 border border-[#1f2937] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
-          </div>
-          <div>
-            <label class="block text-[11px] font-semibold text-slate-300 mb-1">Password</label>
-            <input type="password" id="loginPass" required class="w-full bg-slate-900 border border-[#1f2937] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
-          </div>
-          <button type="submit" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-lg">Login Account</button>
-        </form>
-      </div>
-    </div>
-
-    <!-- CRUD Menu Modal -->
-    <div id="crudModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[100] hidden flex items-center justify-center p-4">
-      <div class="bg-[#111827] border border-[#1f2937] w-full max-w-md rounded-2xl p-6 shadow-2xl">
-        <div class="flex justify-between items-center pb-3 border-b border-[#1f2937] mb-4">
-          <h3 class="text-xs font-bold text-white uppercase">Form Pengaturan Menu</h3>
-          <button onclick="closeCrudModal()" class="text-slate-400 hover:text-white"><i class="fas fa-times"></i></button>
-        </div>
-        <form onsubmit="executeSaveMenu(event)" class="space-y-3">
-          <input type="hidden" id="formId">
-          <input type="hidden" id="formParentId">
-          <div>
-            <label class="block text-[11px] font-semibold text-slate-300 mb-1">Judul Menu / Halaman</label>
-            <input type="text" id="formTitle" required class="w-full bg-slate-900 border border-[#1f2937] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
-          </div>
-          <div>
-            <label class="block text-[11px] font-semibold text-slate-300 mb-1">Kategori / Kelompok Modul</label>
-            <input type="text" id="formCategory" placeholder="misal: General, Operasional, Laporan" class="w-full bg-slate-900 border border-[#1f2937] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
-          </div>
-          <div>
-            <label class="block text-[11px] font-semibold text-slate-300 mb-1">Akses Privasi</label>
-            <select id="formVisibility" class="w-full bg-slate-900 border border-[#1f2937] rounded-xl px-3 py-2 text-xs text-white">
-              <option value="UMUM">UMUM (Semua Orang)</option>
-              <option value="PRIVASI">PRIVASI (Hanya Saya / Owner)</option>
-              <option value="PRIVASI_ADMIN">PRIVASI & ADMIN (Saya + Admin)</option>
-            </select>
-          </div>
-          <div class="grid grid-cols-2 gap-2">
+          <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex items-center justify-between shadow-lg">
             <div>
-              <label class="block text-[11px] font-semibold text-slate-300 mb-1">Tipe Aksi</label>
-              <select id="formType" class="w-full bg-slate-900 border border-[#1f2937] rounded-xl px-3 py-2 text-xs text-white">
-                <option value="link">Tautan Eksternal</option>
-                <option value="folder">Sub Halaman (Folder)</option>
+              <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Sedang Terpinjam (KDF)</p>
+              <h3 id="statKdfKeluar" class="text-2xl font-black text-amber-400 mt-1">0</h3>
+            </div>
+            <div class="w-11 h-11 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center text-lg border border-amber-500/20">
+              <i class="fa-solid fa-truck-arrow-right"></i>
+            </div>
+          </div>
+
+          <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex items-center justify-between shadow-lg">
+            <div>
+              <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Kondisi Baik</p>
+              <h3 id="statKondisiBaik" class="text-2xl font-black text-emerald-400 mt-1">0</h3>
+            </div>
+            <div class="w-11 h-11 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center text-lg border border-emerald-500/20">
+              <i class="fa-solid fa-circle-check"></i>
+            </div>
+          </div>
+
+          <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex items-center justify-between shadow-lg">
+            <div>
+              <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Tersedia di Garasi</p>
+              <h3 id="statSiapPakai" class="text-2xl font-black text-cyan-400 mt-1">0</h3>
+            </div>
+            <div class="w-11 h-11 rounded-xl bg-cyan-500/10 text-cyan-500 flex items-center justify-center text-lg border border-cyan-500/20">
+              <i class="fa-solid fa-warehouse"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- MAIN DATA TABLE CONTAINER -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden flex flex-col w-full">
+          
+          <!-- Toolbar Header -->
+          <div class="p-4 border-b border-slate-800 flex flex-col md:flex-row justify-between items-center gap-3 bg-slate-900/50">
+            <div class="relative w-full md:w-80">
+              <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-500 text-xs"></i>
+              <input type="text" id="tableSearch" onkeyup="filterTable()" placeholder="Cari Plat, Nama Kendaraan, Merk..." class="w-full bg-slate-950 border border-slate-800 text-white rounded-xl pl-9 pr-4 py-2 text-xs focus:outline-none focus:border-brand-500 transition">
+            </div>
+
+            <div class="flex items-center space-x-3 w-full md:w-auto justify-end">
+              <select id="filterKondisi" onchange="filterTable()" class="bg-slate-950 border border-slate-800 text-slate-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-brand-500">
+                <option value="">Semua Kondisi</option>
+                <option value="Baik">Baik</option>
+                <option value="RR">Rusak Ringan (RR)</option>
+                <option value="RB">Rusak Berat (RB)</option>
               </select>
             </div>
-            <div>
-              <label class="block text-[11px] font-semibold text-slate-300 mb-1">Icon FontAwesome</label>
-              <input type="text" id="formIcon" value="fas fa-link" class="w-full bg-slate-900 border border-[#1f2937] rounded-xl px-3 py-2 text-xs text-white">
-            </div>
           </div>
-          <div>
-            <label class="block text-[11px] font-semibold text-slate-300 mb-1">Target URL</label>
-            <input type="text" id="formUrl" value="#" class="w-full bg-slate-900 border border-[#1f2937] rounded-xl px-3 py-2 text-xs text-white">
+
+          <!-- Dynamic Data Table Wrapper -->
+          <div class="overflow-x-auto overflow-y-auto max-h-[520px]">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead class="bg-slate-950 text-slate-400 uppercase font-bold text-[10px] tracking-wider sticky top-0 border-b border-slate-800 z-10">
+                <tr>
+                  <th class="py-3 px-4">No</th>
+                  <th class="py-3 px-4">Nama Barang</th>
+                  <th class="py-3 px-4">Merk / Tipe</th>
+                  <th class="py-3 px-4">No. Polisi</th>
+                  <th class="py-3 px-4">Kondisi</th>
+                  <th class="py-3 px-4">Status KDF</th>
+                  <th class="py-3 px-4">Tgl Keluar</th>
+                  <th class="py-3 px-4">Petugas Serah</th>
+                  <th class="py-3 px-4 text-center">Foto</th>
+                  <th class="py-3 px-4 text-center">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="tableBody" class="divide-y divide-slate-800/60 text-slate-300 font-normal">
+                <!-- Rows injected dynamically via JS -->
+              </tbody>
+            </table>
           </div>
-          <div>
-            <label class="block text-[11px] font-semibold text-slate-300 mb-1">Deskripsi Singkat</label>
-            <textarea id="formDesc" rows="2" class="w-full bg-slate-900 border border-[#1f2937] rounded-xl px-3 py-2 text-xs text-white"></textarea>
+
+          <!-- Table Footer Status -->
+          <div class="px-6 py-3 border-t border-slate-800/80 text-[11px] text-slate-500 flex justify-between items-center bg-slate-950/50 font-medium">
+            <span id="dataSummary">Menampilkan 0 data inventaris</span>
+            <span>GAS-Bloger V2 II Engine &bull; Enterprise Edition</span>
           </div>
-          <div class="flex justify-end space-x-2 pt-2">
-            <button type="button" onclick="closeCrudModal()" class="px-4 py-2 bg-slate-800 text-xs text-slate-300 rounded-xl">Batal</button>
-            <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white rounded-xl shadow-lg">Simpan Data</button>
-          </div>
-        </form>
-      </div>
+        </div>
+
+      </main>
     </div>
-
-    <!-- MODAL USER MANAGEMENT (KHUSUS ADMIN) -->
-    <div id="userManagementModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[100] hidden flex items-center justify-center p-4">
-      <div class="bg-[#111827] border border-[#1f2937] w-full max-w-2xl rounded-2xl p-6 shadow-2xl flex flex-col max-h-[90vh]">
-        
-        <div class="flex justify-between items-center pb-3 border-b border-[#1f2937] mb-4">
-          <div class="flex items-center space-x-2">
-            <i class="fas fa-users-gear text-purple-400"></i>
-            <h3 class="text-xs font-bold text-white uppercase tracking-wider">Manajemen User (Admin Only)</h3>
-          </div>
-          <button onclick="closeUserManagementModal()" class="text-slate-400 hover:text-white"><i class="fas fa-times"></i></button>
-        </div>
-
-        <div class="flex justify-between items-center mb-4">
-          <p class="text-[11px] text-slate-400">Kelola pengguna sistem dan hak akses peran (Role).</p>
-          <button onclick="openUserFormModal()" class="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-bold transition-all shadow-lg flex items-center gap-1">
-            <i class="fas fa-plus text-[10px]"></i><span>Tambah User</span>
-          </button>
-        </div>
-
-        <!-- User Table Data Container -->
-        <div class="overflow-y-auto flex-1 border border-[#1f2937] rounded-xl">
-          <table class="w-full text-left border-collapse">
-            <thead>
-              <tr class="bg-slate-900 border-b border-[#1f2937] text-[10px] uppercase font-bold text-slate-400">
-                <th class="p-3">User ID</th>
-                <th class="p-3">Username</th>
-                <th class="p-3">Nama Lengkap</th>
-                <th class="p-3">Role</th>
-                <th class="p-3 text-center">Aksi</th>
-              </tr>
-            </thead>
-            <tbody id="userTableBody" class="divide-y divide-[#1f2937] text-xs">
-              <!-- Render via JS -->
-            </tbody>
-          </table>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- FORM INPUT / EDIT USER MODAL -->
-    <div id="userFormModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[110] hidden flex items-center justify-center p-4">
-      <div class="bg-[#111827] border border-[#1f2937] w-full max-w-sm rounded-2xl p-6 shadow-2xl">
-        <div class="flex justify-between items-center pb-3 border-b border-[#1f2937] mb-4">
-          <h3 id="userFormTitle" class="text-xs font-bold text-white uppercase tracking-wider">Tambah User Baru</h3>
-          <button onclick="closeUserFormModal()" class="text-slate-400 hover:text-white"><i class="fas fa-times"></i></button>
-        </div>
-        <form onsubmit="executeSaveUser(event)" class="space-y-3">
-          
-          <div>
-            <label class="block text-[11px] font-semibold text-slate-300 mb-1">User ID</label>
-            <input type="text" id="userFormId" placeholder="misal: USR-001 / ADM-01" required class="w-full bg-slate-900 border border-[#1f2937] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500">
-            <span id="userIdHelp" class="text-[10px] text-slate-500 mt-1 block">ID unik untuk pengenal pemilik menu.</span>
-          </div>
-
-          <div>
-            <label class="block text-[11px] font-semibold text-slate-300 mb-1">Username</label>
-            <input type="text" id="userFormUsername" required class="w-full bg-slate-900 border border-[#1f2937] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500">
-          </div>
-
-          <div>
-            <label class="block text-[11px] font-semibold text-slate-300 mb-1">Password</label>
-            <input type="password" id="userFormPassword" required class="w-full bg-slate-900 border border-[#1f2937] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500">
-          </div>
-
-          <div>
-            <label class="block text-[11px] font-semibold text-slate-300 mb-1">Nama Lengkap</label>
-            <input type="text" id="userFormFullName" required class="w-full bg-slate-900 border border-[#1f2937] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500">
-          </div>
-
-          <div>
-            <label class="block text-[11px] font-semibold text-slate-300 mb-1">Hak Akses / Role</label>
-            <select id="userFormRole" class="w-full bg-slate-900 border border-[#1f2937] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500">
-              <option value="USER_KHUSUS">USER_KHUSUS (Kelola Menu Sendiri)</option>
-              <option value="ADMIN">ADMIN (Full Access & User Manager)</option>
-            </select>
-          </div>
-
-          <div class="flex justify-end space-x-2 pt-2">
-            <button type="button" onclick="closeUserFormModal()" class="px-4 py-2 bg-slate-800 text-xs text-slate-300 rounded-xl">Batal</button>
-            <button type="submit" class="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-xs font-bold text-white rounded-xl shadow-lg">Simpan User</button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <!-- Footer -->
-    <footer class="mt-8 pt-4 border-t border-[#1f2937] text-center text-[11px] text-slate-500">
-      &copy; 2022 Portal DMS Engine V1
-    </footer>
   </div>
 
+  <!-- MODAL: ADD / EDIT BMN DATA -->
+  <div id="formModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      <div class="px-6 py-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/80">
+        <div class="flex items-center space-x-2">
+          <i class="fa-solid fa-truck-ramp-box text-brand-500"></i>
+          <h3 class="font-bold text-white text-sm">Input Data BMN & Kendaraan Baru</h3>
+        </div>
+        <button onclick="closeFormModal()" class="text-slate-400 hover:text-white text-base"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form id="bmnDataForm" onsubmit="handleFormSubmit(event)" class="p-6 overflow-y-auto space-y-4 text-xs">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-slate-400 font-semibold mb-1">Kode Satker</label>
+            <input type="text" name="KODE_SATKER" placeholder="145030300..." class="w-full bg-slate-950 border border-slate-800 text-white rounded-lg p-2.5 focus:border-brand-500">
+          </div>
+          <div>
+            <label class="block text-slate-400 font-semibold mb-1">Kode Barang</label>
+            <input type="text" name="KODE_BARANG" placeholder="3010105..." class="w-full bg-slate-950 border border-slate-800 text-white rounded-lg p-2.5 focus:border-brand-500">
+          </div>
+          <div>
+            <label class="block text-slate-400 font-semibold mb-1">NUP</label>
+            <input type="text" name="NUP" placeholder="1" class="w-full bg-slate-950 border border-slate-800 text-white rounded-lg p-2.5 focus:border-brand-500">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-slate-400 font-semibold mb-1">Nama Barang *</label>
+            <input type="text" name="NAMA_BARANG" required placeholder="Contoh: Dump Truck / Mobil Tangki Air" class="w-full bg-slate-950 border border-slate-800 text-white rounded-lg p-2.5 focus:border-brand-500">
+          </div>
+          <div>
+            <label class="block text-slate-400 font-semibold mb-1">Nomor Polisi / Plat *</label>
+            <input type="text" name="NOMOR_POLISI" required placeholder="B 9033 SQU" class="w-full bg-slate-950 border border-slate-800 text-white rounded-lg p-2.5 focus:border-brand-500 font-mono font-bold text-brand-400">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-slate-400 font-semibold mb-1">Merk</label>
+            <input type="text" name="MERK" placeholder="HINO / ISUZU / TOYOTA" class="w-full bg-slate-950 border border-slate-800 text-white rounded-lg p-2.5 focus:border-brand-500">
+          </div>
+          <div>
+            <label class="block text-slate-400 font-semibold mb-1">Tipe Spec</label>
+            <input type="text" name="TIPE" placeholder="WU342R-HKMTJ3" class="w-full bg-slate-950 border border-slate-800 text-white rounded-lg p-2.5 focus:border-brand-500">
+          </div>
+          <div>
+            <label class="block text-slate-400 font-semibold mb-1">Kondisi</label>
+            <select name="KONDISI" class="w-full bg-slate-950 border border-slate-800 text-white rounded-lg p-2.5 focus:border-brand-500">
+              <option value="Baik">Baik</option>
+              <option value="RR">Rusak Ringan (RR)</option>
+              <option value="RB">Rusak Berat (RB)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-slate-400 font-semibold mb-1">Nilai Perolehan (Rp)</label>
+            <input type="text" name="NILAI_PEROLEHAN" placeholder="Rp 310,920,000" class="w-full bg-slate-950 border border-slate-800 text-white rounded-lg p-2.5 focus:border-brand-500">
+          </div>
+          <div>
+            <label class="block text-slate-400 font-semibold mb-1">Link Dokumentasi / Google Drive</label>
+            <input type="url" name="LINK_FOTO_DOKUMEN" placeholder="https://drive.google.com/..." class="w-full bg-slate-950 border border-slate-800 text-white rounded-lg p-2.5 focus:border-brand-500">
+          </div>
+        </div>
+
+        <div class="pt-2 border-t border-slate-800 font-bold text-brand-400 text-[11px] uppercase tracking-wider">
+          Informasi Status Pinjam Pakai (KDF)
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-slate-400 font-semibold mb-1">Tanggal Keluar</label>
+            <input type="date" name="KDF_KELUAR_TANGGAL" class="w-full bg-slate-950 border border-slate-800 text-white rounded-lg p-2.5 focus:border-brand-500">
+          </div>
+          <div>
+            <label class="block text-slate-400 font-semibold mb-1">Petugas Menyerahkan</label>
+            <input type="text" name="KDF_PETUGAS_SERAH" placeholder="Nama Petugas" class="w-full bg-slate-950 border border-slate-800 text-white rounded-lg p-2.5 focus:border-brand-500">
+          </div>
+          <div>
+            <label class="block text-slate-400 font-semibold mb-1">Petugas Menerima</label>
+            <input type="text" name="KDF_PETUGAS_TERIMA" placeholder="Nama Peminjam" class="w-full bg-slate-950 border border-slate-800 text-white rounded-lg p-2.5 focus:border-brand-500">
+          </div>
+        </div>
+
+        <div class="pt-4 border-t border-slate-800 flex justify-end space-x-3">
+          <button type="button" onclick="closeFormModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl transition">Batal</button>
+          <button type="submit" class="px-5 py-2 bg-brand-600 hover:bg-brand-500 text-white font-bold rounded-xl shadow-lg shadow-brand-600/30 transition">Simpan Data BMN</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: DETAIL ASSET VIEW -->
+  <div id="detailModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      <div class="px-6 py-4 border-b border-slate-800 flex justify-between items-center bg-slate-900">
+        <div class="flex items-center space-x-2">
+          <i class="fa-solid fa-circle-info text-cyan-400"></i>
+          <h3 class="font-bold text-white text-sm">Rincian Detail Inventaris BMN</h3>
+        </div>
+        <button onclick="closeDetailModal()" class="text-slate-400 hover:text-white text-base"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div id="detailContent" class="p-6 overflow-y-auto space-y-4 text-xs text-slate-300">
+        <!-- Content inserted dynamically -->
+      </div>
+      <div class="px-6 py-3 border-t border-slate-800 bg-slate-950 flex justify-end">
+        <button onclick="closeDetailModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-xl">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT APP ARCHITECTURE -->
   <script>
-    const GAS_API_URL = "https://script.google.com/macros/s/AKfycby3HFTXgKIcORVoNjhGhU1OjnCSl-rYPxz9STqwyptr1tvad7qh1_TLwrnt3qb6Qut3/exec";
-    
-    let rootMenus = [];
-    let usersList = [];
+    let rawBMNData = [];
     let currentUser = null;
-    let activePageId = "ROOT";
 
-    document.addEventListener('DOMContentLoaded', () => {
-      // FIX: Membaca status login yang tersimpan di localStorage agar tidak hilang saat refresh
-      const savedUser = localStorage.getItem('portal_currentUser');
-      if (savedUser) {
-        try {
-          currentUser = JSON.parse(savedUser);
-        } catch (e) {
-          localStorage.removeItem('portal_currentUser');
-        }
-      }
-      fetchData();
-    });
-
-    function showGlobalSpinner(msg = "Memproses...") {
-      document.getElementById('globalSpinnerMessage').innerText = msg;
-      document.getElementById('globalSpinnerOverlay').classList.remove('hidden');
+    function showLoading(show, message = "Memuat Data Server...") {
+      const overlay = document.getElementById('loadingOverlay');
+      document.getElementById('loadingText').innerText = message;
+      overlay.classList.toggle('hidden', !show);
     }
-    function hideGlobalSpinner() { document.getElementById('globalSpinnerOverlay').classList.add('hidden'); }
 
-    /* SMART CACHING ENGINE FETCH DATA */
-    async function fetchData(forceRefresh = false) {
-      const userId = currentUser ? currentUser.userId : "PUBLIC";
-      const role = currentUser ? currentUser.role : "UMUM";
-      const cacheKey = `portal_cache_${userId}_${role}`;
+    function showToast(message, isSuccess = true) {
+      const toast = document.getElementById('toast');
+      const toastIcon = document.getElementById('toastIcon');
+      const toastMsg = document.getElementById('toastMessage');
 
-      if (!forceRefresh) {
-        const cachedData = sessionStorage.getItem(cacheKey);
-        if (cachedData) {
-          rootMenus = JSON.parse(cachedData);
-          renderHeaderUI();
-          loadPage(activePageId);
-          document.getElementById('loadingState').classList.add('hidden');
-          document.getElementById('cardsGrid').classList.remove('hidden');
-          return;
-        }
-      }
+      toastIcon.innerHTML = isSuccess ? '<i class="fa-solid fa-circle-check text-emerald-400"></i>' : '<i class="fa-solid fa-triangle-exclamation text-rose-400"></i>';
+      toastMsg.innerText = message;
 
-      document.getElementById('loadingState').classList.remove('hidden');
-      document.getElementById('cardsGrid').classList.add('hidden');
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+
+      setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 3500);
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      showLoading(true, "Otentikasi Pengguna...");
+
+      const user = document.getElementById('loginUsername').value;
+      const pass = document.getElementById('loginPassword').value;
 
       try {
-        // FIX: Tambahkan parameter timestamp (_t) agar request selalu langsung memanggil GAS API
-        const response = await fetch(`${GAS_API_URL}?action=getMenus&userId=${userId}&role=${role}&_t=${Date.now()}`);
+        const response = await fetch(`${GAS_API_URL}?action=login&username=${encodeURIComponent(user)}&password=${encodeURIComponent(pass)}`);
         const result = await response.json();
-        
+
         if (result.status === 'success') {
-          rootMenus = result.data;
-          sessionStorage.setItem(cacheKey, JSON.stringify(rootMenus));
-          renderHeaderUI();
-          loadPage(activePageId);
+          currentUser = result.user;
+          document.getElementById('loginSection').classList.add('hidden');
+          document.getElementById('appContainer').classList.remove('hidden');
+          document.getElementById('appUserName').innerText = currentUser.username;
+          document.getElementById('appUserRole').innerText = currentUser.role;
+
+          showToast(`Selamat datang, ${currentUser.username}!`);
+          loadDashboardData();
+        } else {
+          showToast(result.message || "Username atau password salah", false);
         }
       } catch (err) {
-        alert("Gagal memuat API Backend.");
+        showToast("Gagal terhubung dengan endpoint Google Apps Script", false);
       } finally {
-        document.getElementById('loadingState').classList.add('hidden');
-        document.getElementById('cardsGrid').classList.remove('hidden');
+        showLoading(false);
       }
     }
 
-    function clearAppCache() {
-      Object.keys(sessionStorage).forEach(key => {
-        if (key.startsWith('portal_cache_')) sessionStorage.removeItem(key);
-      });
-    }
+    async function loadDashboardData() {
+      showLoading(true, "Mengambil data BMN dari spreadsheet...");
+      try {
+        const response = await fetch(`${GAS_API_URL}?action=getDataBMN`);
+        const result = await response.json();
 
-    function renderHeaderUI() {
-      const badge = document.getElementById('roleBadge');
-      const ownerInfo = document.getElementById('userOwnerInfo');
-      const authBtnLabel = document.getElementById('authBtnLabel');
-      const addMenuMainBtn = document.getElementById('addMenuMainBtn');
-      const manageUserBtn = document.getElementById('manageUserBtn');
-
-      if (currentUser) {
-        badge.innerText = `ROLE: ${currentUser.role}`;
-        ownerInfo.innerText = `@${currentUser.username} (${currentUser.fullName})`;
-        authBtnLabel.innerText = "Logout";
-        addMenuMainBtn.classList.remove('hidden');
-
-        if (currentUser.role === 'ADMIN') {
-          manageUserBtn.classList.remove('hidden');
+        if (result.status === 'success') {
+          rawBMNData = result.data || [];
+          renderDashboardStats(rawBMNData);
+          renderTableData(rawBMNData);
+          showToast("Data BMN berhasil diperbarui");
         } else {
-          manageUserBtn.classList.add('hidden');
+          showToast("Gagal mengambil data dari server", false);
         }
-      } else {
-        badge.innerText = "ROLE: UMUM";
-        ownerInfo.innerText = "@public_access";
-        authBtnLabel.innerText = "Login System";
-        addMenuMainBtn.classList.add('hidden');
-        manageUserBtn.classList.add('hidden');
-      }
-
-      renderNavbarDropdowns();
-    }
-
-    function renderNavbarDropdowns() {
-      const navContainer = document.getElementById('dynamicNavbarMenus');
-      navContainer.innerHTML = rootMenus.map(menu => {
-        const hasSub = menu.submenus && menu.submenus.length > 0;
-        if (hasSub) {
-          return `
-            <div class="dropdown-container relative">
-              <button onclick="loadPage('${menu.id}')" class="px-3 py-1.5 bg-slate-800/80 hover:bg-slate-800 border border-[#1f2937] rounded-xl text-xs font-bold text-slate-200 flex items-center gap-2">
-                <i class="${menu.iconClass || 'fas fa-link'} text-emerald-400"></i>
-                <span>${menu.title}</span>
-                <i class="fas fa-chevron-down text-[10px] text-slate-500"></i>
-              </button>
-              <div class="dropdown-box">
-                <div class="flex justify-between items-center text-[10px] font-bold text-slate-500 uppercase px-2 py-1 border-b border-[#1f2937] mb-1">
-                  <span>SUB HALAMAN</span>
-                  ${currentUser ? `<button onclick="openCrudModal(null, '${menu.id}')" class="text-emerald-400 font-bold">+ Sub</button>` : ''}
-                </div>
-                ${menu.submenus.map(sub => `
-                  <div onclick="handleCardAction('${sub.id}')" class="flex items-center justify-between px-2.5 py-2 rounded-lg hover:bg-slate-800 cursor-pointer group">
-                    <span class="text-xs text-slate-300 group-hover:text-emerald-400 font-medium">${sub.title}</span>
-                    <i class="fas fa-chevron-right text-[10px] text-slate-600"></i>
-                  </div>
-                `).join('')}
-              </div>
-            </div>
-          `;
-        } else {
-          return `
-            <button onclick="handleCardAction('${menu.id}')" class="px-3 py-1.5 bg-slate-800/80 hover:bg-slate-800 border border-[#1f2937] rounded-xl text-xs font-bold text-slate-200 flex items-center gap-2">
-              <i class="${menu.iconClass || 'fas fa-link'} text-emerald-400"></i>
-              <span>${menu.title}</span>
-            </button>
-          `;
-        }
-      }).join('');
-    }
-
-    function handleSearch(keyword) {
-      const clearBtn = document.getElementById('clearSearchBtn');
-      const grid = document.getElementById('cardsGrid');
-      const query = keyword.trim().toLowerCase();
-
-      if (query !== '') {
-        clearBtn.classList.remove('hidden');
-        const allItems = flattenMenus(rootMenus);
-        const filtered = allItems.filter(item => 
-          item.title.toLowerCase().includes(query) || 
-          (item.description && item.description.toLowerCase().includes(query))
-        );
-
-        document.getElementById('bannerTitle').innerText = `Hasil Pencarian: "${keyword}"`;
-        document.getElementById('bannerDesc').innerText = `Ditemukan ${filtered.length} menu yang cocok.`;
-
-        grid.innerHTML = filtered.length > 0
-          ? filtered.map(item => renderItemCard(item)).join('')
-          : `<div class="col-span-full py-12 text-center text-xs text-slate-500 bg-[#111827] rounded-2xl border border-[#1f2937]">Menu tidak ditemukan.</div>`;
-      } else {
-        clearBtn.classList.add('hidden');
-        loadPage(activePageId);
+      } catch (err) {
+        showToast("Kesalahan koneksi API backend", false);
+      } finally {
+        showLoading(false);
       }
     }
 
-    function clearSearch() {
-      document.getElementById('searchInput').value = '';
-      handleSearch('');
-    }
-
-    function flattenMenus(list) {
-      let result = [];
-      list.forEach(item => {
-        result.push(item);
-        if (item.submenus && item.submenus.length > 0) {
-          result = result.concat(flattenMenus(item.submenus));
-        }
-      });
-      return result;
-    }
-
-    function loadPage(pageId) {
-      activePageId = pageId;
-      const grid = document.getElementById('cardsGrid');
-      document.getElementById('searchInput').value = '';
-      document.getElementById('clearSearchBtn').classList.add('hidden');
+    function renderDashboardStats(data) {
+      document.getElementById('statTotalAset').innerText = data.length;
       
-      let displayItems = [];
-      if (pageId === "ROOT") {
-        displayItems = rootMenus;
-        document.getElementById('bannerTitle').innerText = "Direktori & Tautan Sistem";
-        document.getElementById('bannerDesc').innerText = "Silakan pilih menu di atas atau jelajahi modul di bawah ini.";
-      } else {
-        const item = findItemRecursive(rootMenus, pageId);
-        if (item) {
-          displayItems = item.submenus || [];
-          document.getElementById('bannerTitle').innerText = item.title;
-          document.getElementById('bannerDesc').innerText = item.description || "Daftar modul pendukung.";
-        }
-      }
+      const kdfKeluar = data.filter(i => i.KDF_KELUAR_TANGGAL && i.KDF_KELUAR_TANGGAL.toString().trim() !== '').length;
+      document.getElementById('statKdfKeluar').innerText = kdfKeluar;
 
-      grid.innerHTML = displayItems.length > 0 
-        ? displayItems.map(item => renderItemCard(item)).join('')
-        : `<div class="col-span-full py-12 text-center text-xs text-slate-500 bg-[#111827] rounded-2xl border border-[#1f2937]">Belum ada modul.</div>`;
+      const kondisiBaik = data.filter(i => i.KONDISI && i.KONDISI.toLowerCase() === 'baik').length;
+      document.getElementById('statKondisiBaik').innerText = kondisiBaik;
+
+      const siapPakai = data.length - kdfKeluar;
+      document.getElementById('statSiapPakai').innerText = siapPakai > 0 ? siapPakai : 0;
     }
 
-    function renderItemCard(item) {
-      const canEdit = currentUser && (currentUser.role === 'ADMIN' || item.ownerUserId === currentUser.userId);
-      const isFolder = item.type === 'folder' || (item.submenus && item.submenus.length > 0);
+    function renderTableData(data) {
+      const tbody = document.getElementById('tableBody');
+      tbody.innerHTML = '';
 
-      let visBadge = `<span class="bg-blue-500/20 text-blue-300 border-blue-500/30 text-[9px] font-bold px-2 py-0.5 rounded border">UMUM</span>`;
-      if (item.visibility === 'PRIVASI') {
-        visBadge = `<span class="bg-amber-500/20 text-amber-300 border-amber-500/30 text-[9px] font-bold px-2 py-0.5 rounded border"><i class="fas fa-lock text-[8px] mr-1"></i>PRIVASI</span>`;
-      } else if (item.visibility === 'PRIVASI_ADMIN') {
-        visBadge = `<span class="bg-purple-500/20 text-purple-300 border-purple-500/30 text-[9px] font-bold px-2 py-0.5 rounded border"><i class="fas fa-user-shield text-[8px] mr-1"></i>PRIVASI & ADMIN</span>`;
+      document.getElementById('dataSummary').innerText = `Menampilkan ${data.length} baris data inventaris`;
+
+      if (data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" class="text-center py-8 text-slate-500 font-medium">Tidak ada data BMN yang ditemukan.</td></tr>`;
+        return;
       }
 
-      return `
-        <div class="bg-[#111827] border border-[#1f2937] hover:border-emerald-500/50 rounded-2xl p-4 flex flex-col justify-between shadow-lg transition-all group">
-          <div>
-            <div class="flex items-center justify-between mb-4">
-              <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20">
-                <i class="${item.iconClass || 'fas fa-link'} text-base"></i>
-              </div>
-
-              <div class="flex items-center space-x-1">
-                ${canEdit ? `
-                  <button onclick="openCrudModal(null, '${item.id}')" class="px-2 py-1 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-bold hover:bg-emerald-500/30">+ Sub</button>
-                  <button onclick="editMenu(event, '${item.id}')" class="w-6 h-6 rounded bg-amber-500/20 text-amber-300 text-[10px] flex items-center justify-center hover:bg-amber-500/30"><i class="fas fa-pen"></i></button>
-                  <button onclick="deleteMenu(event, '${item.id}')" class="w-6 h-6 rounded bg-red-500/20 text-red-300 text-[10px] flex items-center justify-center hover:bg-red-500/30"><i class="fas fa-trash"></i></button>
-                ` : ''}
-              </div>
-            </div>
-
-            <h4 class="text-sm font-bold text-white">${item.title}</h4>
-            <p class="text-xs text-slate-400 mt-1 line-clamp-2">${item.description || ''}</p>
-            
-            <div class="mt-3 flex items-center gap-2 flex-wrap">
-              ${visBadge}
-              ${item.category ? `<span class="bg-indigo-500/20 text-indigo-300 border-indigo-500/30 text-[9px] font-bold px-2 py-0.5 rounded border"><i class="fas fa-tag text-[8px] mr-1"></i>${item.category}</span>` : ''}
-              <span class="text-[9px] font-semibold text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-[#1f2937]">
-                Owner: ${item.ownerUserId}
-              </span>
-            </div>
-          </div>
-
-          <div class="mt-5 pt-3 border-t border-[#1f2937] flex items-center justify-between">
-            <button onclick="handleCardAction('${item.id}')" class="text-xs font-bold text-emerald-400 flex items-center gap-1 hover:underline">
-              <span>${isFolder ? 'Buka Halaman' : 'Akses Tautan'}</span>
-              <i class="fas fa-arrow-right text-[10px]"></i>
+      data.forEach((item, index) => {
+        const isKeluar = item.KDF_KELUAR_TANGGAL && item.KDF_KELUAR_TANGGAL.toString().trim() !== '';
+        
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-800/40 transition border-b border-slate-800/60";
+        tr.innerHTML = `
+          <td class="py-3 px-4 font-mono text-slate-500">${index + 1}</td>
+          <td class="py-3 px-4 font-semibold text-white">${item.NAMA_BARANG || '-'}</td>
+          <td class="py-3 px-4 text-slate-300">${item.MERK || ''} ${item.TIPE ? '<span class="text-slate-500 text-[11px]">(' + item.TIPE + ')</span>' : ''}</td>
+          <td class="py-3 px-4 font-mono font-bold text-brand-400">${item.NOMOR_POLISI || '-'}</td>
+          <td class="py-3 px-4">
+            <span class="px-2 py-0.5 text-[10px] rounded font-bold uppercase ${item.KONDISI === 'Baik' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/10 text-rose-400 border border-rose-500/30'}">
+              ${item.KONDISI || 'Baik'}
+            </span>
+          </td>
+          <td class="py-3 px-4">
+            <span class="px-2 py-0.5 text-[10px] rounded font-bold uppercase ${isKeluar ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30' : 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30'}">
+              ${isKeluar ? 'Terpinjam' : 'Tersedia'}
+            </span>
+          </td>
+          <td class="py-3 px-4 text-slate-400">${item.KDF_KELUAR_TANGGAL || '-'}</td>
+          <td class="py-3 px-4 text-slate-400">${item.KDF_PETUGAS_SERAH || '-'}</td>
+          <td class="py-3 px-4 text-center">
+            ${item.LINK_FOTO_DOKUMEN ? `<a href="${item.LINK_FOTO_DOKUMEN}" target="_blank" class="text-brand-400 hover:text-brand-300"><i class="fa-solid fa-images text-sm"></i></a>` : '<span class="text-slate-600">-</span>'}
+          </td>
+          <td class="py-3 px-4 text-center">
+            <button onclick="viewDetail(${index})" class="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition" title="Lihat Detail">
+              <i class="fa-solid fa-eye"></i>
             </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function filterTable() {
+      const search = document.getElementById('tableSearch').value.toLowerCase();
+      const kondisi = document.getElementById('filterKondisi').value;
+
+      const filtered = rawBMNData.filter(item => {
+        const matchesSearch = (item.NAMA_BARANG && item.NAMA_BARANG.toLowerCase().includes(search)) ||
+                              (item.NOMOR_POLISI && item.NOMOR_POLISI.toLowerCase().includes(search)) ||
+                              (item.MERK && item.MERK.toLowerCase().includes(search));
+        
+        const matchesKondisi = !kondisi || (item.KONDISI && item.KONDISI.toLowerCase() === kondisi.toLowerCase());
+
+        return matchesSearch && matchesKondisi;
+      });
+
+      renderTableData(filtered);
+    }
+
+    async function handleFormSubmit(e) {
+      e.preventDefault();
+      showLoading(true, "Menyimpan data BMN...");
+
+      const formData = new FormData(e.target);
+      const payload = {};
+      formData.forEach((val, key) => payload[key] = val);
+
+      try {
+        const response = await fetch(`${GAS_API_URL}?action=addDataBMN`, {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+        const result = await response.json();
+
+        if (result.status === 'success') {
+          showToast("Data BMN berhasil disimpan!");
+          closeFormModal();
+          e.target.reset();
+          loadDashboardData();
+        } else {
+          showToast(result.message || "Gagal menyimpan data", false);
+        }
+      } catch (err) {
+        showToast("Terjadi kesalahan saat kirim data", false);
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    function viewDetail(index) {
+      const item = rawBMNData[index];
+      if (!item) return;
+
+      const content = document.getElementById('detailContent');
+      content.innerHTML = `
+        <div class="grid grid-cols-2 gap-3">
+          <div class="bg-slate-950 p-3 rounded-lg border border-slate-800">
+            <span class="text-slate-500 block text-[10px] uppercase">Nama Barang</span>
+            <span class="text-white font-bold">${item.NAMA_BARANG || '-'}</span>
+          </div>
+          <div class="bg-slate-950 p-3 rounded-lg border border-slate-800">
+            <span class="text-slate-500 block text-[10px] uppercase">Nomor Polisi</span>
+            <span class="text-brand-400 font-mono font-bold">${item.NOMOR_POLISI || '-'}</span>
+          </div>
+          <div class="bg-slate-950 p-3 rounded-lg border border-slate-800">
+            <span class="text-slate-500 block text-[10px] uppercase">Merk & Tipe</span>
+            <span class="text-slate-200">${item.MERK || '-'} (${item.TIPE || '-'})</span>
+          </div>
+          <div class="bg-slate-950 p-3 rounded-lg border border-slate-800">
+            <span class="text-slate-500 block text-[10px] uppercase">Nilai Perolehan</span>
+            <span class="text-slate-200 font-semibold">${item.NILAI_PEROLEHAN || '-'}</span>
+          </div>
+          <div class="bg-slate-950 p-3 rounded-lg border border-slate-800">
+            <span class="text-slate-500 block text-[10px] uppercase">Kode Satker / Kode Barang</span>
+            <span class="text-slate-300 font-mono">${item.KODE_SATKER || '-'} / ${item.KODE_BARANG || '-'}</span>
+          </div>
+          <div class="bg-slate-950 p-3 rounded-lg border border-slate-800">
+            <span class="text-slate-500 block text-[10px] uppercase">Kondisi Unit</span>
+            <span class="text-emerald-400 font-bold">${item.KONDISI || 'Baik'}</span>
+          </div>
+        </div>
+        <div class="pt-3 border-t border-slate-800">
+          <h4 class="font-bold text-brand-400 text-[11px] uppercase mb-2">Riwayat Pinjam Pakai (KDF)</h4>
+          <div class="grid grid-cols-2 gap-3">
+            <p><strong class="text-slate-400">Petugas Serah:</strong> ${item.KDF_PETUGAS_SERAH || '-'}</p>
+            <p><strong class="text-slate-400">Petugas Terima:</strong> ${item.KDF_PETUGAS_TERIMA || '-'}</p>
+            <p><strong class="text-slate-400">Tgl Keluar:</strong> ${item.KDF_KELUAR_TANGGAL || '-'}</p>
+            <p><strong class="text-slate-400">Kegiatan:</strong> ${item.KDF_PINJAMAN_KEGIATAN || '-'}</p>
           </div>
         </div>
       `;
+      document.getElementById('detailModal').classList.remove('hidden');
     }
 
-    function handleCardAction(id) {
-      const item = findItemRecursive(rootMenus, id);
-      if (!item) return;
+    function closeDetailModal() { document.getElementById('detailModal').classList.add('hidden'); }
+    function openFormModal() { document.getElementById('formModal').classList.remove('hidden'); }
+    function closeFormModal() { document.getElementById('formModal').classList.add('hidden'); }
 
-      if (item.submenus && item.submenus.length > 0) {
-        loadPage(item.id);
-      } else if (item.targetUrl && item.targetUrl !== '#') {
-        window.open(item.targetUrl, '_blank');
-      } else {
-        alert(`Menu: ${item.title}\nTautan belum dikonfigurasi.`);
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      sidebar.classList.toggle('-ml-64');
+    }
+
+    function switchTab(tabName) {
+      document.querySelectorAll('.sidebar-link').forEach(el => {
+        el.classList.remove('bg-slate-800/80', 'text-white');
+        el.classList.add('text-slate-400');
+      });
+      const activeLink = document.getElementById(`nav-${tabName}`);
+      if (activeLink) {
+        activeLink.classList.add('bg-slate-800/80', 'text-white');
+        activeLink.classList.remove('text-slate-400');
       }
-    }
 
-    function handleAuthClick() {
-      if (currentUser) {
-        currentUser = null;
-        localStorage.removeItem('portal_currentUser');
-        clearAppCache();
-        fetchData(true);
-      } else {
-        document.getElementById('loginModal').classList.remove('hidden');
-      }
-    }
-    function closeLoginModal() { document.getElementById('loginModal').classList.add('hidden'); }
-
-    async function executeLogin(e) {
-      e.preventDefault();
-      showGlobalSpinner("Verifikasi Autentikasi...");
-
-      const u = document.getElementById('loginUser').value;
-      const p = document.getElementById('loginPass').value;
-
-      try {
-        const res = await fetch(GAS_API_URL, {
-          method: 'POST',
-          body: JSON.stringify({ action: 'login', username: u, password: p })
-        });
-        const json = await res.json();
-
-        if (json.status === 'success') {
-          currentUser = json.user;
-          // FIX: Simpan user di localStorage agar sesi login tetap bertahan setelah refresh
-          localStorage.setItem('portal_currentUser', JSON.stringify(currentUser));
-          closeLoginModal();
-          clearAppCache();
-          await fetchData(true);
-        } else {
-          // Deteksi error getDataRange dari backend GAS
-          if (json.message && json.message.includes("getDataRange")) {
-            alert("Kendala Backend: Tab sheet 'Users' tidak ditemukan di Google Sheets. Pastikan nama tab di Google Sheets sesuai (misal: 'Users').");
-          } else {
-            alert(json.message || "Gagal melakukan login. Periksa username dan password.");
-          }
-        }
-      } catch (err) {
-        alert("Gagal melakukan login. Terjadi kendala koneksi ke Apps Script.");
-      } finally {
-        hideGlobalSpinner();
-      }
-    }
-
-    function openCrudModal(editItem = null, parentId = '') {
-      document.getElementById('formId').value = editItem ? editItem.id : '';
-      document.getElementById('formParentId').value = parentId;
-      document.getElementById('formTitle').value = editItem ? editItem.title : '';
-      document.getElementById('formCategory').value = editItem ? (editItem.category || 'General') : 'General';
-      document.getElementById('formVisibility').value = editItem ? editItem.visibility : 'UMUM';
-      document.getElementById('formType').value = editItem ? editItem.type : 'link';
-      document.getElementById('formIcon').value = editItem ? editItem.iconClass : 'fas fa-link';
-      document.getElementById('formUrl').value = editItem ? editItem.targetUrl : '#';
-      document.getElementById('formDesc').value = editItem ? editItem.description : '';
-      document.getElementById('crudModal').classList.remove('hidden');
-    }
-    function closeCrudModal() { document.getElementById('crudModal').classList.add('hidden'); }
-
-    async function executeSaveMenu(e) {
-      e.preventDefault();
-      showGlobalSpinner("Menyimpan Perubahan Menu...");
-
-      const payload = {
-        action: 'saveMenu',
-        id: document.getElementById('formId').value,
-        parentId: document.getElementById('formParentId').value,
-        title: document.getElementById('formTitle').value,
-        category: document.getElementById('formCategory').value,
-        visibility: document.getElementById('formVisibility').value,
-        type: document.getElementById('formType').value,
-        iconClass: document.getElementById('formIcon').value,
-        targetUrl: document.getElementById('formUrl').value,
-        description: document.getElementById('formDesc').value,
-        ownerUserId: currentUser ? currentUser.userId : 'PUBLIC'
+      const titles = {
+        'dashboard': 'Dashboard Utama Analytics',
+        'data-bmn': 'Data Master Inventaris BMN KDF',
+        'pinjam-pakai': 'Status Pinjam Pakai & Pengembalian'
       };
-
-      try {
-        const res = await fetch(GAS_API_URL, {
-          method: 'POST',
-          body: JSON.stringify(payload)
-        });
-        const json = await res.json();
-
-        if (json.status === 'success') {
-          closeCrudModal();
-          clearAppCache();
-          await fetchData(true);
-        } else {
-          alert("Gagal menyimpan menu: " + json.message);
-        }
-      } catch (err) {
-        alert("Terjadi kesalahan koneksi ke server.");
-      } finally {
-        hideGlobalSpinner();
-      }
+      document.getElementById('pageTitle').innerText = titles[tabName] || 'Dashboard';
     }
 
-    function editMenu(e, id) {
-      e.stopPropagation();
-      const item = findItemRecursive(rootMenus, id);
-      if (item) {
-        openCrudModal(item, item.parentId || '');
-      }
-    }
-
-    async function deleteMenu(e, id) {
-      e.stopPropagation();
-      if (!confirm("Apakah Anda yakin ingin menghapus menu ini?")) return;
-
-      showGlobalSpinner("Menghapus Menu...");
-      try {
-        const res = await fetch(GAS_API_URL, {
-          method: 'POST',
-          body: JSON.stringify({
-            action: 'deleteMenu',
-            id: id,
-            userId: currentUser ? currentUser.userId : '',
-            role: currentUser ? currentUser.role : 'UMUM'
-          })
-        });
-        const json = await res.json();
-
-        if (json.status === 'success') {
-          clearAppCache();
-          await fetchData(true);
-        } else {
-          alert("Gagal menghapus: " + json.message);
-        }
-      } catch (err) {
-        alert("Gagal melakukan penghapusan.");
-      } finally {
-        hideGlobalSpinner();
-      }
-    }
-
-    function findItemRecursive(list, id) {
-      for (const item of list) {
-        if (item.id === id) return item;
-        if (item.submenus && item.submenus.length > 0) {
-          const found = findItemRecursive(item.submenus, id);
-          if (found) return found;
-        }
-      }
-      return null;
-    }
-
-    /* USER MANAGEMENT CONTROLLERS */
-    async function openUserManagementModal() {
-      document.getElementById('userManagementModal').classList.remove('hidden');
-      await loadUsersData();
-    }
-    function closeUserManagementModal() { document.getElementById('userManagementModal').classList.add('hidden'); }
-
-    async function loadUsersData() {
-      try {
-        const res = await fetch(`${GAS_API_URL}?action=getUsers&_t=${Date.now()}`);
-        const json = await res.json();
-
-        if (json.status === 'success') {
-          usersList = json.data;
-          renderUserTable();
-        }
-      } catch (err) {
-        alert("Gagal mengambil data user.");
-      }
-    }
-
-    function renderUserTable() {
-      const tbody = document.getElementById('userTableBody');
-      tbody.innerHTML = usersList.map(u => `
-        <tr class="hover:bg-slate-800/50 transition-all">
-          <td class="p-3 font-mono font-bold text-emerald-400">${u.userId}</td>
-          <td class="p-3 text-slate-200">${u.username}</td>
-          <td class="p-3 text-slate-300">${u.fullName}</td>
-          <td class="p-3"><span class="px-2 py-0.5 text-[10px] font-bold rounded ${u.role === 'ADMIN' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : 'bg-slate-700 text-slate-300'}">${u.role}</span></td>
-          <td class="p-3 text-center space-x-1">
-            <button onclick="deleteUser('${u.userId}')" class="px-2 py-1 rounded bg-red-500/20 text-red-300 hover:bg-red-500/30 text-[10px]"><i class="fas fa-trash"></i></button>
-          </td>
-        </tr>
-      `).join('');
-    }
-
-    function openUserFormModal() {
-      document.getElementById('userFormId').value = '';
-      document.getElementById('userFormUsername').value = '';
-      document.getElementById('userFormPassword').value = '';
-      document.getElementById('userFormFullName').value = '';
-      document.getElementById('userFormRole').value = 'USER_KHUSUS';
-      document.getElementById('userFormModal').classList.remove('hidden');
-    }
-    function closeUserFormModal() { document.getElementById('userFormModal').classList.add('hidden'); }
-
-    async function executeSaveUser(e) {
-      e.preventDefault();
-      showGlobalSpinner("Menyimpan Data User...");
-
-      const payload = {
-        action: 'saveUser',
-        userId: document.getElementById('userFormId').value,
-        username: document.getElementById('userFormUsername').value,
-        password: document.getElementById('userFormPassword').value,
-        fullName: document.getElementById('userFormFullName').value,
-        role: document.getElementById('userFormRole').value
-      };
-
-      try {
-        const res = await fetch(GAS_API_URL, {
-          method: 'POST',
-          body: JSON.stringify(payload)
-        });
-        const json = await res.json();
-
-        if (json.status === 'success') {
-          closeUserFormModal();
-          await loadUsersData();
-        } else {
-          alert("Gagal menyimpan user: " + json.message);
-        }
-      } catch (err) {
-        alert("Gagal menyimpan user.");
-      } finally {
-        hideGlobalSpinner();
-      }
-    }
-
-    async function deleteUser(userId) {
-      if (!confirm(`Hapus user ID: ${userId}?`)) return;
-      showGlobalSpinner("Menghapus User...");
-
-      try {
-        const res = await fetch(GAS_API_URL, {
-          method: 'POST',
-          body: JSON.stringify({ action: 'deleteUser', userId: userId })
-        });
-        const json = await res.json();
-
-        if (json.status === 'success') {
-          await loadUsersData();
-        } else {
-          alert(json.message);
-        }
-      } catch (err) {
-        alert("Gagal menghapus user.");
-      } finally {
-        hideGlobalSpinner();
-      }
+    function logout() {
+      currentUser = null;
+      document.getElementById('appContainer').classList.add('hidden');
+      document.getElementById('loginSection').classList.remove('hidden');
+      showToast("Anda telah berhasil keluar");
     }
   </script>
 </body>
